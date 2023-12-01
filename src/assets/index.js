@@ -1,4 +1,5 @@
-import logo from "./logo.svg";
+// import logo from "./logo.svg";
+import logo from "./logo.jpg";
 import backend from "./backend.png";
 import creator from "./creator.png";
 import mobile from "./mobile.png";
@@ -21,10 +22,10 @@ import tailwind from "./tech/tailwind.png";
 import typescript from "./tech/typescript.png";
 import threejs from "./tech/threejs.svg";
 
-import meta from "./company/meta.png";
-import shopify from "./company/shopify.png";
-import starbucks from "./company/starbucks.png";
-import tesla from "./company/tesla.png";
+import meta from "./company/strugend.png";
+import strugend from "./company/strugend.png";
+import starbucks from "./company/strugend.png";
+import tesla from "./company/strugend.png";
 
 import carrent from "./carrent.png";
 import jobit from "./jobit.png";
@@ -53,7 +54,7 @@ export {
   typescript,
   threejs,
   meta,
-  shopify,
+  strugend,
   starbucks,
   tesla,
   carrent,
