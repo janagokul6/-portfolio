@@ -29,7 +29,7 @@ const About = () => {
       </motion.div>
       <motion.p variants={fadeIn('', '', 0.1, 1)}
         className='mt-4 text-secondary text-[17px] max-w-3xl leading-[30px]'>
-        is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.
+        I am a Full-Stack Developer with expertise in MERN stack and a passion for open source. I've co-developed comprehensive projects, optimized server response times, and led teams. My skills include JavaScript, React, Node.js, and more. I am excited to contribute to your team.
       </motion.p>
 
       <div className="mt-20 flex lg:justify-center flex-wrap gap-10">

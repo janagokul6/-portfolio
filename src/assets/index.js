@@ -7,6 +7,7 @@ import web from "./web.png";
 import github from "./github.png";
 import menu from "./menu.svg";
 import close from "./close.svg";
+import download from "./download-outline-loop.svg";
 
 import css from "./tech/css.png";
 import docker from "./tech/docker.png";
@@ -22,14 +23,28 @@ import tailwind from "./tech/tailwind.png";
 import typescript from "./tech/typescript.png";
 import threejs from "./tech/threejs.svg";
 
-import meta from "./company/strugend.png";
+import varroc from "./company/Varroc.png";
 import strugend from "./company/strugend.png";
-import starbucks from "./company/strugend.png";
-import tesla from "./company/strugend.png";
+import nuBeginnings from "./company/nuBeginnings.jpg";
 
-import carrent from "./carrent.png";
-import jobit from "./jobit.png";
-import tripguide from "./tripguide.png";
+import WebScrapX from "./projects/webScrapX.png";
+import LetsMeet from "./projects/leetsMeet.png";
+import Greatway from "./projects/greatway.jpg";
+import socialMedia from "./projects/social media webapp.png";
+import MyTube from "./projects/MyTube.png";
+import GoBikes from "./projects/goBikesImg.png";
+
+import java from "./tech/java.jpg"
+import material from "./tech/Material UI.png"
+import Express from "./tech/Express JS.png"
+import NextJs from "./tech/Next JS.png"
+import kafka from "./tech/kafka.jpg"
+import postman from "./tech/postman.jpg"
+import firebase from "./tech/firebase.jpg"
+import vsCode from "./tech/vsCode.jpg"
+
+import adityaPrasun from "./Aditya Prasun.png"
+import triyambakaMishra from "./Triyambaka Mishra.png"
 
 export {
   logo,
@@ -40,24 +55,36 @@ export {
   github,
   menu,
   close,
+  download,
   css,
   docker,
   figma,
   git,
   html,
+  Express,
+  java,
   javascript,
   mongodb,
+  material,
+  postman,
+  firebase,
+  vsCode,
+  NextJs,
+  kafka,
   nodejs,
   reactjs,
   redux,
   tailwind,
   typescript,
   threejs,
-  meta,
   strugend,
-  starbucks,
-  tesla,
-  carrent,
-  jobit,
-  tripguide,
+  varroc,
+  Greatway,
+  nuBeginnings,
+  triyambakaMishra,
+  adityaPrasun,
+  WebScrapX,
+  LetsMeet,
+  socialMedia,
+  MyTube,GoBikes,
 };
