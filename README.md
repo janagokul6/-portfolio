@@ -75,7 +75,19 @@ Open [http://localhost:3000](http://localhost:3000)
 3. Add environment variables in Vercel dashboard
 4. Deploy
 
-The cron job will automatically run every 5 minutes to send scheduled emails.
+Use either **Vercel Cron** (see \`vercel.json\`) or an **external cron** (recommended) to hit \`GET /api/cron\` every 15 minutes.
+
+### External cron (e.g. cron-job.org)
+
+To trigger the cron from an external service (free, reliable):
+
+1. **Set a secret** in your deployment: add \`CRON_SECRET\` to Vercel (or your host) with a long random string (e.g. \`openssl rand -hex 24\`).
+2. **Create a cron job** at [cron-job.org](https://cron-job.org) (or similar):
+   - **URL**: \`https://your-app.vercel.app/api/cron\`
+   - **Schedule**: every 15 minutes
+   - **Auth**: either add a request header \`X-Cron-Secret: <your CRON_SECRET>\`, or use \`Authorization: Bearer <your CRON_SECRET>\`, or append \`?secret=<your CRON_SECRET>\` to the URL.
+
+If \`CRON_SECRET\` is not set, the endpoint accepts any GET request (fine for local dev; set the secret in production). The route uses an in-memory lock so overlapping runs (e.g. slow run and next tick) do not process jobs twice; jobs are processed in order by scheduled time.
 
 ### Environment Variables in Vercel
 
@@ -85,6 +97,7 @@ Add these in your Vercel project settings:
 - \`OPENAI_API_KEY\` or \`GEMINI_API_KEY\`
 - \`GMAIL_USER\`
 - \`GMAIL_APP_PASSWORD\`
+- \`CRON_SECRET\` (optional but recommended for production when using external cron)
 
 ## Usage
 

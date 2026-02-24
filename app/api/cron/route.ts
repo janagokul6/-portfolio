@@ -1,6 +1,9 @@
 /**
  * Cron API Route
- * Executes scheduled email sending
+ * Executes scheduled email sending. Supports external cron (e.g. cron-job.org):
+ * - Optional CRON_SECRET for auth (header or query)
+ * - In-memory lock to prevent overlapping runs
+ * - Jobs processed in order by scheduledAt
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -11,17 +14,29 @@ import { emailService } from '@/lib/services/email';
 import { logError } from '@/lib/utils/validation';
 import { getResumePath } from '@/lib/utils/emailFormatter';
 
-/**
- * Check if a date is a weekend (Saturday or Sunday)
- */
-function isWeekend(date: Date): boolean {
-  const day = getDay(date);
-  return day === 0 || day === 6; // 0 = Sunday, 6 = Saturday
-}
+/** Prevents overlapping runs when external cron hits while a run is in progress */
+let cronRunInProgress = false;
 
 /**
- * Move date to next Monday if it's a weekend
+ * Validate optional CRON_SECRET. If env is set, request must provide it via
+ * Authorization: Bearer <secret>, X-Cron-Secret: <secret>, or ?secret=<secret>.
  */
+function validateCronSecret(request: NextRequest): boolean {
+  const secret = process.env.CRON_SECRET;
+  if (!secret) return true;
+  const auth = request.headers.get('authorization');
+  const bearer = auth?.startsWith('Bearer ') ? auth.slice(7) : null;
+  const headerSecret = request.headers.get('x-cron-secret');
+  const querySecret = request.nextUrl.searchParams.get('secret');
+  const provided = bearer ?? headerSecret ?? querySecret ?? '';
+  return provided === secret;
+}
+
+function isWeekend(date: Date): boolean {
+  const day = getDay(date);
+  return day === 0 || day === 6;
+}
+
 function moveToNextMonday(date: Date): Date {
   let result = new Date(date);
   while (isWeekend(result)) {
@@ -31,6 +46,21 @@ function moveToNextMonday(date: Date): Date {
 }
 
 export async function GET(request: NextRequest) {
+  if (!validateCronSecret(request)) {
+    return NextResponse.json(
+      { processed: 0, errors: ['Unauthorized'] } as CronResponse,
+      { status: 401 }
+    );
+  }
+
+  if (cronRunInProgress) {
+    return NextResponse.json(
+      { processed: 0, errors: [], message: 'Cron run already in progress' } as CronResponse & { message?: string },
+      { status: 200 }
+    );
+  }
+
+  cronRunInProgress = true;
   try {
     const currentTime = new Date();
     const errors: string[] = [];
@@ -83,13 +113,16 @@ export async function GET(request: NextRequest) {
     // Filter jobs that are ready to send
     // In development mode: ALL pending jobs are ready (ignore scheduled time)
     // In production mode: Only jobs where scheduledAt <= now
-    const readyJobs = isDevelopment 
-      ? pendingJobs // All pending jobs in development
+    const readyJobs = isDevelopment
+      ? pendingJobs
       : pendingJobs.filter(job => {
           const scheduledTime = new Date(job.scheduledAt);
           return scheduledTime <= currentTime;
         });
-    
+
+    // Process in chronological order (oldest scheduled first)
+    readyJobs.sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime());
+
     if (isDevelopment) {
       const allJobs = memoryStore.getAllJobs();
       console.log(`Cron: DEVELOPMENT mode - Total jobs: ${allJobs.length}, Pending: ${pendingJobs.length}, Processing: ${readyJobs.length}`);
@@ -150,11 +183,10 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     logError(error as Error, 'Cron endpoint error');
     return NextResponse.json(
-      { 
-        processed: 0, 
-        errors: ['Internal server error'] 
-      } as CronResponse,
+      { processed: 0, errors: ['Internal server error'] } as CronResponse,
       { status: 500 }
     );
+  } finally {
+    cronRunInProgress = false;
   }
 }
