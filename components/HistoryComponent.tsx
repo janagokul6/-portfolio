@@ -2,9 +2,11 @@
 
 /**
  * History Component
- * Displays job application history with status indicators
+ * Compact list of job applications; each item is expandable to show details.
+ * List is scrollable inside the sidebar; responsive for mobile.
  */
 
+import { useState } from 'react';
 import { JobRecord } from '@/lib/types';
 import { format } from 'date-fns';
 
@@ -14,9 +16,8 @@ interface HistoryComponentProps {
 }
 
 export default function HistoryComponent({ jobs, onRefresh }: HistoryComponentProps) {
-  /**
-   * Get status icon and color
-   */
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+
   const getStatusDisplay = (status: string) => {
     switch (status) {
       case 'sent':
@@ -29,143 +30,176 @@ export default function HistoryComponent({ jobs, onRefresh }: HistoryComponentPr
         return { icon: '❓', color: 'text-gray-600', label: 'Unknown' };
     }
   };
-  
-  /**
-   * Format timestamp
-   */
+
   const formatTimestamp = (timestamp: string) => {
     try {
-      return format(new Date(timestamp), 'MMM d, yyyy h:mm a');
+      return format(new Date(timestamp), 'MMM d, h:mm a');
     } catch {
       return timestamp;
     }
   };
-  
+
   if (jobs.length === 0) {
     return (
-      <div className="text-center py-12 text-gray-500">
-        <p className="text-lg">No job applications yet</p>
-        <p className="text-sm mt-2">Upload a screenshot to get started</p>
+      <div className="flex flex-col h-full min-h-0">
+        <div className="flex justify-between items-center gap-2 flex-shrink-0">
+          <h2 className="text-lg font-semibold text-gray-800">Applications (0)</h2>
+          <button
+            onClick={onRefresh}
+            className="p-2 text-gray-600 hover:bg-gray-200 rounded-lg transition-colors"
+            aria-label="Refresh history"
+          >
+            <RefreshIcon />
+          </button>
+        </div>
+        <div className="flex-1 flex items-center justify-center text-center py-8 text-gray-500">
+          <div>
+            <p className="font-medium">No applications yet</p>
+            <p className="text-sm mt-1">Upload a screenshot to get started</p>
+          </div>
+        </div>
       </div>
     );
   }
-  
-  // Sort jobs by creation date (newest first)
-  const sortedJobs = [...jobs].sort((a, b) => {
-    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-  });
-  
+
+  const sortedJobs = [...jobs].sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  );
+  const MAX_VISIBLE = 15;
+  const visibleJobs = sortedJobs.slice(0, MAX_VISIBLE);
+
   return (
-    <div className="space-y-4">
-      {/* Header with refresh button */}
-      <div className="flex justify-between items-center">
-        <h2 className="text-xl font-semibold text-gray-800">
-          Application History ({jobs.length})
+    <div className="flex flex-col h-full min-h-0">
+      {/* Header: fixed height, not scrollable */}
+      <div className="flex justify-between items-center gap-2 flex-shrink-0 mb-3">
+        <h2 className="text-lg font-semibold text-gray-800 truncate">
+          Applications ({jobs.length})
         </h2>
         <button
           onClick={onRefresh}
-          className="px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors flex items-center gap-2"
+          className="p-2 text-gray-600 hover:bg-gray-200 rounded-lg transition-colors flex-shrink-0"
+          aria-label="Refresh history"
         >
-          <svg
-            className="w-4 h-4"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-            />
-          </svg>
-          Refresh
+          <RefreshIcon />
         </button>
       </div>
-      
-      {/* Job list */}
-      <div className="space-y-3 max-h-[600px] overflow-y-auto">
-        {sortedJobs.map((job) => {
+
+      {/* Scrollable list: maintains height, scrolls inside sidebar */}
+      <div className="flex-1 min-h-0 overflow-y-auto -mx-1 px-1 space-y-1">
+        {visibleJobs.map((job) => {
           const statusDisplay = getStatusDisplay(job.status);
-          
+          const isExpanded = expandedId === job.id;
+
           return (
             <div
               key={job.id}
-              className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+              className="bg-white border border-gray-200 rounded-lg overflow-hidden transition-shadow hover:border-gray-300 hover:shadow-sm"
             >
-              {/* Status and Company */}
-              <div className="flex items-start justify-between mb-2">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-2xl">{statusDisplay.icon}</span>
-                    <span className={`font-medium ${statusDisplay.color}`}>
-                      {statusDisplay.label}
-                    </span>
-                  </div>
-                  <h3 className="text-lg font-semibold text-gray-900">
-                    {job.company}
-                  </h3>
-                  <p className="text-gray-600">{job.position}</p>
+              {/* List row: compact, consistent height */}
+              <button
+                type="button"
+                onClick={() => setExpandedId(isExpanded ? null : job.id)}
+                className="w-full text-left flex items-center gap-3 py-3 px-3 sm:px-4 min-h-[56px]"
+                aria-expanded={isExpanded}
+                aria-controls={`history-details-${job.id}`}
+              >
+                <span className="text-lg flex-shrink-0" aria-hidden>
+                  {statusDisplay.icon}
+                </span>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-gray-900 truncate">{job.company}</p>
+                  <p className="text-sm text-gray-600 truncate">{job.position}</p>
+                </div>
+                <span className={`text-xs font-medium flex-shrink-0 ${statusDisplay.color}`}>
+                  {statusDisplay.label}
+                </span>
+                <span className="flex-shrink-0 text-gray-400">
+                  {isExpanded ? (
+                    <ChevronUpIcon />
+                  ) : (
+                    <ChevronDownIcon />
+                  )}
+                </span>
+              </button>
+
+              {/* Expandable details */}
+              <div
+                id={`history-details-${job.id}`}
+                role="region"
+                aria-label={`Details for ${job.company}`}
+                className={isExpanded ? 'block border-t border-gray-100' : 'hidden'}
+              >
+                <div className="p-3 sm:p-4 pt-2 bg-gray-50/80 text-sm space-y-2">
+                  <DetailRow label="Email" value={job.email} />
+                  <DetailRow label="Region" value={job.region} />
+                  <DetailRow label="Created" value={formatTimestamp(job.createdAt)} />
+                  {job.scheduledAt && (
+                    <DetailRow label="Scheduled" value={formatTimestamp(job.scheduledAt)} />
+                  )}
+                  {job.processedAt && (
+                    <DetailRow label="Processed" value={formatTimestamp(job.processedAt)} />
+                  )}
+                  {job.status === 'failed' && job.error && (
+                    <div className="mt-2 p-2 bg-red-50 border border-red-100 rounded text-red-700">
+                      <span className="font-medium">Error: </span>
+                      {job.error}
+                    </div>
+                  )}
+                  {job.emailSubject && (
+                    <details className="mt-2">
+                      <summary className="cursor-pointer font-medium text-blue-600 hover:text-blue-700">
+                        View email
+                      </summary>
+                      <div className="mt-2 p-2 bg-white rounded border border-gray-100 space-y-1">
+                        <p><span className="font-medium text-gray-700">Subject: </span>{job.emailSubject}</p>
+                        <p className="text-gray-900 whitespace-pre-wrap break-words">{job.emailBody}</p>
+                      </div>
+                    </details>
+                  )}
                 </div>
               </div>
-              
-              {/* Details */}
-              <div className="space-y-1 text-sm text-gray-600">
-                <div className="flex items-center gap-2">
-                  <span className="font-medium">Email:</span>
-                  <span>{job.email}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="font-medium">Region:</span>
-                  <span>{job.region}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="font-medium">Created:</span>
-                  <span>{formatTimestamp(job.createdAt)}</span>
-                </div>
-                {job.scheduledAt && (
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium">Scheduled:</span>
-                    <span>{formatTimestamp(job.scheduledAt)}</span>
-                  </div>
-                )}
-                {job.processedAt && (
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium">Processed:</span>
-                    <span>{formatTimestamp(job.processedAt)}</span>
-                  </div>
-                )}
-              </div>
-              
-              {/* Error message if failed */}
-              {job.status === 'failed' && job.error && (
-                <div className="mt-3 p-2 bg-red-50 border border-red-200 rounded text-sm text-red-700">
-                  <span className="font-medium">Error:</span> {job.error}
-                </div>
-              )}
-              
-              {/* Email preview */}
-              {job.emailSubject && (
-                <details className="mt-3">
-                  <summary className="cursor-pointer text-sm text-blue-600 hover:text-blue-700 font-medium">
-                    View email
-                  </summary>
-                  <div className="mt-2 p-3 bg-gray-50 rounded text-sm space-y-2">
-                    <div>
-                      <span className="font-medium text-gray-700">Subject:</span>
-                      <p className="text-gray-900">{job.emailSubject}</p>
-                    </div>
-                    <div>
-                      <span className="font-medium text-gray-700">Body:</span>
-                      <p className="text-gray-900 whitespace-pre-wrap">{job.emailBody}</p>
-                    </div>
-                  </div>
-                </details>
-              )}
             </div>
           );
         })}
       </div>
     </div>
+  );
+}
+
+function DetailRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex gap-2 min-w-0">
+      <span className="font-medium text-gray-600 flex-shrink-0">{label}:</span>
+      <span className="text-gray-900 truncate">{value}</span>
+    </div>
+  );
+}
+
+function RefreshIcon() {
+  return (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+      />
+    </svg>
+  );
+}
+
+function ChevronDownIcon() {
+  return (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+    </svg>
+  );
+}
+
+function ChevronUpIcon() {
+  return (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+    </svg>
   );
 }
