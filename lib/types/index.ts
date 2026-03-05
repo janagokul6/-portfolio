@@ -69,6 +69,15 @@ export interface SyncResponse {
 }
 
 /**
+ * In-memory store status (current server-side store counts)
+ */
+export interface StoreStatusResponse {
+  total: number;
+  pending: number;
+  processed: number;
+}
+
+/**
  * Cron response payload
  */
 export interface CronResponse {

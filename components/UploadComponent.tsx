@@ -5,8 +5,30 @@
  * Handles screenshot upload and user interaction
  */
 
-import { useState, useRef, ChangeEvent, FormEvent } from 'react';
+import { useState, useRef, useEffect, ChangeEvent, FormEvent, DragEvent } from 'react';
 import { JobRecord, UploadResponse } from '@/lib/types';
+
+const VALID_TYPES = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
+const MAX_SIZE = 10 * 1024 * 1024;
+
+function validateFile(file: File, onError: (msg: string) => void): boolean {
+  if (!VALID_TYPES.includes(file.type)) {
+    onError('Invalid image format. Please upload PNG, JPG, JPEG, or WebP');
+    return false;
+  }
+  if (file.size > MAX_SIZE) {
+    onError('Image size must be less than 10MB');
+    return false;
+  }
+  return true;
+}
+
+function setFileAndPreview(file: File, setSelectedFile: (f: File | null) => void, setPreviewUrl: (u: string | null) => void) {
+  setSelectedFile(file);
+  const reader = new FileReader();
+  reader.onloadend = () => setPreviewUrl(reader.result as string);
+  reader.readAsDataURL(file);
+}
 
 interface UploadComponentProps {
   onUploadComplete: (jobRecord: JobRecord) => void;
@@ -18,39 +40,79 @@ export default function UploadComponent({ onUploadComplete, onError }: UploadCom
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [promptText, setPromptText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
+
   /**
-   * Handle file selection
+   * Handle file selection (input change)
    */
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    
-    // Validate file type
-    const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
-    if (!validTypes.includes(file.type)) {
-      onError('Invalid image format. Please upload PNG, JPG, JPEG, or WebP');
-      return;
-    }
-    
-    // Validate file size (10MB)
-    const maxSize = 10 * 1024 * 1024;
-    if (file.size > maxSize) {
-      onError('Image size must be less than 10MB');
-      return;
-    }
-    
-    setSelectedFile(file);
-    
-    // Create preview URL
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setPreviewUrl(reader.result as string);
-    };
-    reader.readAsDataURL(file);
+    if (!validateFile(file, onError)) return;
+    setFileAndPreview(file, setSelectedFile, setPreviewUrl);
   };
-  
+
+  /**
+   * Handle drag over - allow drop
+   */
+  const handleDragOver = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!isLoading && !selectedFile) setIsDragging(true);
+  };
+
+  /**
+   * Handle drag leave
+   */
+  const handleDragLeave = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!e.currentTarget.contains(e.relatedTarget as Node)) setIsDragging(false);
+  };
+
+  /**
+   * Handle drop - validate and set file
+   */
+  const handleDrop = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    if (isLoading || selectedFile) return;
+    const file = e.dataTransfer.files?.[0];
+    if (!file) return;
+    if (!validateFile(file, onError)) return;
+    setFileAndPreview(file, setSelectedFile, setPreviewUrl);
+  };
+
+  /**
+   * Handle paste - use image from clipboard (e.g. screenshot)
+   */
+  useEffect(() => {
+    const handlePaste = (e: ClipboardEvent) => {
+      if (isLoading) return;
+      const target = e.target as HTMLElement | null;
+      if (target?.tagName === 'INPUT' || target?.tagName === 'TEXTAREA') return;
+      const data = e.clipboardData;
+      if (!data) return;
+      let file: File | null = data.files?.[0] ?? null;
+      if (!file && data.items) {
+        for (const item of data.items) {
+          if (item.kind === 'file' && item.type.startsWith('image/')) {
+            file = item.getAsFile();
+            break;
+          }
+        }
+      }
+      if (!file || !file.type.startsWith('image/')) return;
+      if (!validateFile(file, onError)) return;
+      setFileAndPreview(file, setSelectedFile, setPreviewUrl);
+      e.preventDefault();
+    };
+    window.addEventListener('paste', handlePaste);
+    return () => window.removeEventListener('paste', handlePaste);
+  }, [isLoading, onError]);
+
   /**
    * Handle form submission
    */
@@ -116,8 +178,17 @@ export default function UploadComponent({ onUploadComplete, onError }: UploadCom
   return (
     <div className="w-full max-w-2xl mx-auto">
       <form onSubmit={handleSubmit} className="space-y-4">
-        {/* File Input */}
-        <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors">
+        {/* File Input - with drag and drop */}
+        <div
+          className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
+            isDragging
+              ? 'border-blue-500 bg-blue-50'
+              : 'border-gray-300 hover:border-gray-400'
+          }`}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+        >
           <input
             ref={fileInputRef}
             type="file"
@@ -167,7 +238,7 @@ export default function UploadComponent({ onUploadComplete, onError }: UploadCom
                   <span className="font-medium text-blue-600 hover:text-blue-500">
                     Upload a screenshot
                   </span>
-                  {' '}or drag and drop
+                  , paste from clipboard, or drag and drop
                 </div>
                 <p className="text-xs text-gray-500">
                   PNG, JPG, JPEG, WebP up to 10MB

@@ -7,7 +7,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import { JobRecord, SyncResponse } from '@/lib/types';
+import { JobRecord, SyncResponse, StoreStatusResponse } from '@/lib/types';
 import { saveJob, getAllJobs, mergeProcessedJobs } from '@/lib/utils/localStorage';
 import UploadComponent from '@/components/UploadComponent';
 import HistoryComponent from '@/components/HistoryComponent';
@@ -19,27 +19,21 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [storeStatus, setStoreStatus] = useState<StoreStatusResponse | null>(null);
 
   /**
-   * Load jobs from localStorage on mount
+   * Fetch current in-memory store status
    */
-  useEffect(() => {
-    const loadedJobs = getAllJobs();
-    setJobs(loadedJobs);
-
-    // Auto-sync on load
-    syncJobs();
-  }, []);
-
-  /**
-   * Close mobile sidebar on Escape
-   */
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setSidebarOpen(false);
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+  const fetchStoreStatus = useCallback(async () => {
+    try {
+      const res = await fetch('/api/store');
+      if (res.ok) {
+        const data: StoreStatusResponse = await res.json();
+        setStoreStatus(data);
+      }
+    } catch {
+      setStoreStatus(null);
+    }
   }, []);
 
   /**
@@ -60,6 +54,7 @@ export default function Home() {
         const updatedJobs = getAllJobs();
         setJobs(updatedJobs);
       }
+      await fetchStoreStatus();
     } catch (err) {
       console.error('Sync error:', err);
     } finally {
@@ -71,6 +66,7 @@ export default function Home() {
     saveJob(jobRecord);
     setJobs((prev) => [jobRecord, ...prev]);
     setError(null);
+    fetchStoreStatus();
   };
 
   const handleError = (errorMessage: string) => {
@@ -80,6 +76,30 @@ export default function Home() {
 
   const handleRefresh = useCallback(() => {
     syncJobs();
+  }, []);
+
+  /**
+   * Load jobs from localStorage on mount
+   */
+  useEffect(() => {
+    const loadedJobs = getAllJobs();
+    setJobs(loadedJobs);
+    syncJobs();
+  }, []);
+
+  useEffect(() => {
+    fetchStoreStatus();
+  }, [fetchStoreStatus]);
+
+  /**
+   * Close mobile sidebar on Escape
+   */
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setSidebarOpen(false);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
   return (
@@ -127,8 +147,8 @@ export default function Home() {
         </div>
       </aside>
 
-      {/* Main content */}
-      <div className="flex-1 min-w-0 flex flex-col">
+      {/* Main content - extra bottom padding for fixed status bar */}
+      <div className="flex-1 min-w-0 flex flex-col pb-14">
         <div className="container mx-auto px-4 py-6 md:py-8 flex-1">
           {/* Header with hamburger (mobile) */}
           <div className="flex items-center gap-3 mb-6 md:mb-8">
@@ -211,6 +231,22 @@ export default function Home() {
             </p>
           </div>
         </div>
+      </div>
+
+      {/* In-memory store status bar - fixed at bottom */}
+      <div className="fixed bottom-0 left-0 right-0 z-30 bg-gray-800 text-gray-200 text-xs sm:text-sm px-3 py-2 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 border-t border-gray-700">
+        <span className="font-medium">Store:</span>
+        {storeStatus === null ? (
+          <span className="text-gray-400">—</span>
+        ) : (
+          <>
+            <span>Total {storeStatus.total}</span>
+            <span className="text-gray-400">|</span>
+            <span>Pending {storeStatus.pending}</span>
+            <span className="text-gray-400">|</span>
+            <span>Processed {storeStatus.processed}</span>
+          </>
+        )}
       </div>
 
       {/* Sync Indicator */}
