@@ -105,3 +105,26 @@ export interface SMTPConfig {
     pass: string;
   };
 }
+
+/**
+ * Cron log source — how the /api/cron endpoint was triggered
+ */
+export type CronLogSource = 'cron' | 'ui';
+
+/**
+ * Cron log status
+ */
+export type CronLogStatus = 'success' | 'partial' | 'skipped' | 'error';
+
+/**
+ * Cron hit log entry
+ */
+export interface CronLogEntry {
+  hitAt: string;               // ISO timestamp (UTC)
+  source: CronLogSource;       // External cron or UI
+  durationMs: number;          // Run duration in milliseconds
+  processed: number;           // Number of jobs processed
+  errors: string[];            // Error messages if any
+  status: CronLogStatus;       // Overall result
+  message?: string;            // Optional info message
+}

@@ -1,34 +1,30 @@
 /**
  * Sync API Route
- * Returns processed jobs for frontend synchronization
+ * Returns processed jobs from the database for frontend synchronization
+ * Unlike the old in-memory version, processed jobs are NOT deleted since the DB is persistent
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { SyncResponse } from '@/lib/types';
-import { memoryStore } from '@/lib/services/memoryStore';
+import { dbStore } from '@/lib/services/dbStore';
 import { logError } from '@/lib/utils/validation';
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     // Get all processed jobs (sent or failed)
-    const processedJobs = memoryStore.getProcessedJobs();
-    const pendingJobs = memoryStore.getPendingJobs();
-    const allJobs = memoryStore.getAllJobs();
-    
+    const processedJobs = await dbStore.getProcessedJobs();
+    const pendingJobs = await dbStore.getPendingJobs();
+    const allJobs = await dbStore.getAllJobs();
+
     console.log(`Sync: Total jobs: ${allJobs.length}, Pending: ${pendingJobs.length}, Processed: ${processedJobs.length}`);
-    
-    // Delete processed jobs from memory store
-    for (const job of processedJobs) {
-      memoryStore.deleteJob(job.id);
-    }
-    
-    // Return processed jobs
+
+    // Return processed jobs (no deletion — DB is the persistent store)
     const response: SyncResponse = {
       processedJobs
     };
-    
+
     return NextResponse.json(response, { status: 200 });
-    
+
   } catch (error) {
     logError(error as Error, 'Sync endpoint error');
     return NextResponse.json(

@@ -4,25 +4,27 @@
  * Main Application Page
  * Sidebar layout: History in left sidebar (desktop always visible, mobile drawer via hamburger).
  * Upload remains the main content.
+ * History is fetched from the database via /api/jobs.
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import { JobRecord, SyncResponse, StoreStatusResponse } from '@/lib/types';
-import { saveJob, getAllJobs, mergeProcessedJobs } from '@/lib/utils/localStorage';
+import { JobRecord, StoreStatusResponse, CronLogEntry } from '@/lib/types';
 import UploadComponent from '@/components/UploadComponent';
 import HistoryComponent from '@/components/HistoryComponent';
+import CronTimeline from '@/components/CronTimeline';
 
 const SIDEBAR_ID = 'history-sidebar';
 
 export default function Home() {
   const [jobs, setJobs] = useState<JobRecord[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [isSyncing, setIsSyncing] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [storeStatus, setStoreStatus] = useState<StoreStatusResponse | null>(null);
+  const [cronLogs, setCronLogs] = useState<CronLogEntry[]>([]);
 
   /**
-   * Fetch current in-memory store status
+   * Fetch current database store status
    */
   const fetchStoreStatus = useCallback(async () => {
     try {
@@ -37,33 +39,41 @@ export default function Home() {
   }, []);
 
   /**
-   * Sync processed jobs from backend
+   * Fetch all jobs from the database
    */
-  const syncJobs = async () => {
-    setIsSyncing(true);
+  const fetchJobs = useCallback(async () => {
+    setIsLoading(true);
     try {
-      const response = await fetch('/api/sync');
+      const response = await fetch('/api/jobs');
       if (!response.ok) {
-        throw new Error('Sync failed');
+        throw new Error('Failed to fetch jobs');
       }
-
-      const data: SyncResponse = await response.json();
-
-      if (data.processedJobs.length > 0) {
-        mergeProcessedJobs(data.processedJobs);
-        const updatedJobs = getAllJobs();
-        setJobs(updatedJobs);
-      }
-      await fetchStoreStatus();
+      const data = await response.json();
+      setJobs(data.jobs || []);
     } catch (err) {
-      console.error('Sync error:', err);
+      console.error('Fetch jobs error:', err);
     } finally {
-      setIsSyncing(false);
+      setIsLoading(false);
     }
-  };
+  }, []);
+
+  /**
+   * Fetch recent cron hit logs
+   */
+  const fetchCronLogs = useCallback(async () => {
+    try {
+      const res = await fetch('/api/cron-logs?days=3');
+      if (res.ok) {
+        const data = await res.json();
+        setCronLogs(data.logs || []);
+      }
+    } catch {
+      setCronLogs([]);
+    }
+  }, []);
 
   const handleUploadComplete = (jobRecord: JobRecord) => {
-    saveJob(jobRecord);
+    // Optimistically add to local state; DB already has it via the API
     setJobs((prev) => [jobRecord, ...prev]);
     setError(null);
     fetchStoreStatus();
@@ -75,21 +85,25 @@ export default function Home() {
   };
 
   const handleRefresh = useCallback(() => {
-    syncJobs();
-  }, []);
+    fetchJobs();
+    fetchStoreStatus();
+    fetchCronLogs();
+  }, [fetchJobs, fetchStoreStatus, fetchCronLogs]);
 
   /**
-   * Load jobs from localStorage on mount
+   * Load jobs from database on mount
    */
   useEffect(() => {
-    const loadedJobs = getAllJobs();
-    setJobs(loadedJobs);
-    syncJobs();
-  }, []);
+    fetchJobs();
+  }, [fetchJobs]);
 
   useEffect(() => {
     fetchStoreStatus();
   }, [fetchStoreStatus]);
+
+  useEffect(() => {
+    fetchCronLogs();
+  }, [fetchCronLogs]);
 
   /**
    * Close mobile sidebar on Escape
@@ -233,24 +247,29 @@ export default function Home() {
         </div>
       </div>
 
-      {/* In-memory store status bar - fixed at bottom */}
-      <div className="fixed bottom-0 left-0 right-0 z-30 bg-gray-800 text-gray-200 text-xs sm:text-sm px-3 py-2 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 border-t border-gray-700">
-        <span className="font-medium">Store:</span>
-        {storeStatus === null ? (
-          <span className="text-gray-400">—</span>
-        ) : (
-          <>
-            <span>Total {storeStatus.total}</span>
-            <span className="text-gray-400">|</span>
-            <span>Pending {storeStatus.pending}</span>
-            <span className="text-gray-400">|</span>
-            <span>Processed {storeStatus.processed}</span>
-          </>
-        )}
+      {/* Database store status bar - fixed at bottom */}
+      <div className="fixed bottom-0 left-0 right-0 z-30 bg-gray-800 text-gray-200 text-xs sm:text-sm px-3 py-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-t border-gray-700">
+        {/* Left: Store counts */}
+        <div className="flex items-center gap-x-3">
+          <span className="font-medium">Store:</span>
+          {storeStatus === null ? (
+            <span className="text-gray-400">—</span>
+          ) : (
+            <>
+              <span>Total {storeStatus.total}</span>
+              <span className="text-gray-400">|</span>
+              <span>Pending {storeStatus.pending}</span>
+              <span className="text-gray-400">|</span>
+              <span>Processed {storeStatus.processed}</span>
+            </>
+          )}
+        </div>
+        {/* Right: Cron timeline */}
+        <CronTimeline logs={cronLogs} />
       </div>
 
-      {/* Sync Indicator */}
-      {isSyncing && (
+      {/* Loading Indicator */}
+      {isLoading && (
         <div className="fixed bottom-4 right-4 bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-2">
           <svg
             className="animate-spin h-4 w-4"
@@ -272,7 +291,7 @@ export default function Home() {
               d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
             />
           </svg>
-          Syncing...
+          Loading...
         </div>
       )}
     </main>

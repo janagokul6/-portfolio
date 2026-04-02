@@ -1,17 +1,17 @@
 /**
  * Store status API
- * Returns current in-memory store counts: total, pending, processed
+ * Returns current database store counts: total, pending, processed
  */
 
 import { NextResponse } from 'next/server';
-import { memoryStore } from '@/lib/services/memoryStore';
+import { dbStore } from '@/lib/services/dbStore';
 import { StoreStatusResponse } from '@/lib/types';
 
 export async function GET() {
   try {
-    const allJobs = memoryStore.getAllJobs();
-    const pendingJobs = memoryStore.getPendingJobs();
-    const processedJobs = memoryStore.getProcessedJobs();
+    const allJobs = await dbStore.getAllJobs();
+    const pendingJobs = await dbStore.getPendingJobs();
+    const processedJobs = await dbStore.getProcessedJobs();
 
     const response: StoreStatusResponse = {
       total: allJobs.length,
