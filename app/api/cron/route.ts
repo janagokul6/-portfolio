@@ -19,20 +19,7 @@ import { getResumePath } from '@/lib/utils/emailFormatter';
 /** Prevents overlapping runs when external cron hits while a run is in progress */
 let cronRunInProgress = false;
 
-/**
- * Validate optional CRON_SECRET. If env is set, request must provide it via
- * Authorization: Bearer <secret>, X-Cron-Secret: <secret>, or ?secret=<secret>.
- */
-function validateCronSecret(request: NextRequest): boolean {
-  const secret = process.env.CRON_SECRET;
-  if (!secret) return true;
-  const auth = request.headers.get('authorization');
-  const bearer = auth?.startsWith('Bearer ') ? auth.slice(7) : null;
-  const headerSecret = request.headers.get('x-cron-secret');
-  const querySecret = request.nextUrl.searchParams.get('secret');
-  const provided = bearer ?? headerSecret ?? querySecret ?? '';
-  return provided === secret;
-}
+
 
 /**
  * Detect if the request came from an external cron (has secret) or UI
@@ -60,12 +47,6 @@ function moveToNextMonday(date: Date): Date {
 }
 
 export async function GET(request: NextRequest) {
-  if (!validateCronSecret(request)) {
-    return NextResponse.json(
-      { processed: 0, errors: ['Unauthorized'] } as CronResponse,
-      { status: 401 }
-    );
-  }
 
   if (cronRunInProgress) {
     return NextResponse.json(
