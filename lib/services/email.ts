@@ -65,7 +65,7 @@ class GmailEmailService implements EmailService {
   async sendEmail(to: string, subject: string, body: string, attachmentPath?: string): Promise<void> {
     const mailOptions: any = {
       from: this.fromAddress,
-      to: process.env.TO_MAIL || to,
+      to: process.env.NODE_ENV === 'development' ?  process.env.TO_MAIL : to,
       subject,
       text: body
     };
