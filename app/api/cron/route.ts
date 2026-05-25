@@ -147,7 +147,7 @@ export async function GET(request: NextRequest) {
     for (const job of readyJobs) {
       try {
         const resumePath = getResumePath();
-        await emailService.sendEmail(job.email, job.emailSubject, job.emailBody, resumePath);
+        await emailService.sendEmail(job.email, job.emailSubject, job.emailBody, job.id, resumePath);
 
         await dbStore.updateJob(job.id, {
           status: 'sent',

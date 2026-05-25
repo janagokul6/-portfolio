@@ -25,6 +25,12 @@ function docToJobRecord(doc: any): JobRecord {
         processedAt: doc.processedAt || undefined,
         error: doc.error || undefined,
         imageUrl: doc.imageUrl || undefined,
+        opened: doc.opened || false,
+        openedAt: doc.openedAt || undefined,
+        openCount: doc.openCount || 0,
+        clicked: doc.clicked || false,
+        clickedAt: doc.clickedAt || undefined,
+        clickCount: doc.clickCount || 0,
     };
 }
 

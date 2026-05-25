@@ -70,6 +70,28 @@ const JobSchema = new Schema<IJobDocument>(
         imageUrl: {
             type: String,
         },
+        opened: {
+            type: Boolean,
+            default: false,
+        },
+        openedAt: {
+            type: String,
+        },
+        openCount: {
+            type: Number,
+            default: 0,
+        },
+        clicked: {
+            type: Boolean,
+            default: false,
+        },
+        clickedAt: {
+            type: String,
+        },
+        clickCount: {
+            type: Number,
+            default: 0,
+        },
     },
     {
         // Disable Mongoose's automatic timestamps since we manage createdAt manually
@@ -96,6 +118,12 @@ JobSchema.methods.toJobRecord = function (): JobRecord {
         processedAt: doc.processedAt,
         error: doc.error,
         imageUrl: doc.imageUrl,
+        opened: doc.opened,
+        openedAt: doc.openedAt,
+        openCount: doc.openCount,
+        clicked: doc.clicked,
+        clickedAt: doc.clickedAt,
+        clickCount: doc.clickCount,
     };
 };
 

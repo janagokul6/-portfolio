@@ -24,6 +24,12 @@ export interface JobRecord {
   processedAt?: string;          // ISO timestamp when processed
   error?: string;                // Error message if failed
   imageUrl?: string;             // Optional: stored image reference
+  opened?: boolean;              // Has the email been opened?
+  openedAt?: string;             // ISO timestamp of first open
+  openCount?: number;            // Total number of open events
+  clicked?: boolean;             // Has any link been clicked?
+  clickedAt?: string;            // ISO timestamp of first click
+  clickCount?: number;           // Total number of click events
 }
 
 /**
@@ -75,6 +81,8 @@ export interface StoreStatusResponse {
   total: number;
   pending: number;
   processed: number;
+  opened: number;                // Jobs where email was opened
+  clicked: number;               // Jobs where link was clicked
 }
 
 /**

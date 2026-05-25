@@ -1,16 +1,19 @@
 /**
  * Email Service for sending emails via Gmail SMTP
+ * Sends HTML emails with tracking pixel for open detection
+ * and wrapped links for click tracking.
  */
 
 import nodemailer from 'nodemailer';
 import type { Transporter } from 'nodemailer';
 import { SMTPConfig } from '@/lib/types';
+import { buildTrackedEmail } from '@/lib/utils/htmlEmail';
 
 /**
  * Email Service interface
  */
 export interface EmailService {
-  sendEmail(to: string, subject: string, body: string, attachmentPath?: string): Promise<void>;
+  sendEmail(to: string, subject: string, body: string, jobId: string, attachmentPath?: string): Promise<void>;
 }
 
 /**
@@ -60,14 +63,20 @@ class GmailEmailService implements EmailService {
   
   /**
    * Send an email via Gmail SMTP
-   * Includes retry logic for rate limits
+   * Converts plain text body to tracked HTML with open pixel and click-wrapped links.
+   * Includes retry logic for rate limits.
    */
-  async sendEmail(to: string, subject: string, body: string, attachmentPath?: string): Promise<void> {
+  async sendEmail(to: string, subject: string, body: string, jobId: string, attachmentPath?: string): Promise<void> {
+    // Build tracked HTML + plain text fallback
+    const portfolioUrl = process.env.PORTFOLIO_URL || undefined;
+    const { html, text } = buildTrackedEmail(body, jobId, portfolioUrl);
+
     const mailOptions: any = {
       from: this.fromAddress,
       to: process.env.NODE_ENV === 'development' ?  process.env.TO_MAIL : to,
       subject,
-      text: body
+      text,   // Plain text fallback
+      html    // HTML with tracking pixel + wrapped links
     };
     
     // Add attachment if provided
@@ -151,3 +160,4 @@ export function createEmailService(): EmailService {
  * Default email service instance
  */
 export const emailService = createEmailService();
+

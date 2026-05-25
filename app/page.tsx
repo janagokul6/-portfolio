@@ -261,6 +261,10 @@ export default function Home() {
               <span>Pending {storeStatus.pending}</span>
               <span className="text-gray-400">|</span>
               <span>Processed {storeStatus.processed}</span>
+              <span className="text-gray-400">|</span>
+              <span className="text-green-400">👁️ {storeStatus.opened}</span>
+              <span className="text-gray-400">|</span>
+              <span className="text-blue-400">🔗 {storeStatus.clicked}</span>
             </>
           )}
         </div>

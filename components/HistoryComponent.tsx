@@ -156,6 +156,26 @@ export default function HistoryComponent({ jobs, onRefresh }: HistoryComponentPr
                       </div>
                     </details>
                   )}
+                  {/* Tracking badges for sent emails */}
+                  {job.status === 'sent' && (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {job.opened ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-green-50 text-green-700 border border-green-200">
+                          👁️ Opened ({job.openCount || 1}x)
+                        </span>
+                      ) : null}
+                      {job.clicked ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
+                          🔗 Clicked ({job.clickCount || 1}x)
+                        </span>
+                      ) : null}
+                      {!job.opened && !job.clicked && (
+                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-gray-50 text-gray-500 border border-gray-200">
+                          📭 No activity yet
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
