@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
     // Generate email draft using LLM
     let emailDraft;
     try {
-      emailDraft = await llmService.generateEmail(extractedDetails);
+      emailDraft = await llmService.generateEmail(extractedDetails, process.env.PORTFOLIO_URL);
       // Add signature locally (not from LLM)
       emailDraft.body = addSignature(emailDraft.body);
     } catch (error) {

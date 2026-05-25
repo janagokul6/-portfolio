@@ -10,7 +10,7 @@ import { ExtractedDetails, EmailDraft } from '@/lib/types';
  */
 export interface LLMService {
   extractJobDetails(image: string, prompt?: string): Promise<ExtractedDetails>;
-  generateEmail(details: ExtractedDetails): Promise<EmailDraft>;
+  generateEmail(details: ExtractedDetails, portfolioUrl?: string): Promise<EmailDraft>;
 }
 
 /**
@@ -128,14 +128,18 @@ Return ONLY valid JSON in this exact format:
     }
   }
   
-  async generateEmail(details: ExtractedDetails): Promise<EmailDraft> {
+  async generateEmail(details: ExtractedDetails, portfolioUrl?: string): Promise<EmailDraft> {
+    const portfolioInstruction = portfolioUrl 
+      ? `\n- MUST naturally include a link to my portfolio/profile in the body: ${portfolioUrl}`
+      : '';
+
     const systemPrompt = `You are writing a casual, natural cold application email. This is the FIRST contact - you saw a job posting and are reaching out. Write like a real person would - conversational, brief, and genuine. NO placeholders, NO formal corporate language, NO templates. If you don't have specific information, just omit it - never use brackets like [name] or [date].
 
 CRITICAL RULES:
 - NEVER start with "I hope this message finds you well" or similar formal greetings
 - NEVER end with "Best regards", "Sincerely", or any closing signature - the signature will be added separately
 - Start directly with your message after a simple greeting
-- End the body with your last sentence - no sign-off`;
+- End the body with your last sentence - no sign-off${portfolioInstruction}`;
     
     const userPrompt = `Write a short, natural cold application email for this job I saw posted:
 Company: ${details.company}
@@ -324,14 +328,18 @@ Return ONLY valid JSON in this exact format:
     }
   }
   
-  async generateEmail(details: ExtractedDetails): Promise<EmailDraft> {
+  async generateEmail(details: ExtractedDetails, portfolioUrl?: string): Promise<EmailDraft> {
+    const portfolioInstruction = portfolioUrl 
+      ? `\n- MUST naturally include a link to my portfolio/profile in the body: ${portfolioUrl}`
+      : '';
+
     const prompt = `You are writing a casual, natural cold application email. This is the FIRST contact - you saw a job posting and are reaching out. Write like a real person would - conversational, brief, and genuine. NO placeholders, NO formal corporate language, NO templates. If you don't have specific information, just omit it - never use brackets like [name] or [date].
 
 CRITICAL RULES:
 - NEVER start with "I hope this message finds you well" or similar formal greetings
 - NEVER end with "Best regards", "Sincerely", or any closing signature - the signature will be added separately
 - Start directly with your message after a simple greeting
-- End the body with your last sentence - no sign-off
+- End the body with your last sentence - no sign-off${portfolioInstruction}
 
 Write a short, natural cold application email for this job I saw posted:
 Company: ${details.company}

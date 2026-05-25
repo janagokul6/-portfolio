@@ -10,13 +10,8 @@ import path from 'path';
 export function addSignature(emailBody: string): string {
   const name = process.env.APPLICANT_NAME || 'Gokul Jana';
   const contact = process.env.APPLICANT_CONTACT;
-  const portfolioUrl = process.env.PORTFOLIO_URL;
-
   // Simple signature format
-  let signature = `\n\nBest regards,\n${name}\n${contact}`;
-  if (portfolioUrl) {
-    signature += `\nPortfolio: ${portfolioUrl}`;
-  }
+  const signature = `\n\nBest regards,\n${name}\n${contact}`;
 
   return emailBody + signature;
 }
