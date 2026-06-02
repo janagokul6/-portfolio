@@ -10,7 +10,9 @@ import { ExtractedDetails, EmailDraft } from '@/lib/types';
  */
 export interface LLMService {
   extractJobDetails(image: string, prompt?: string): Promise<ExtractedDetails>;
+  extractJobDetailsFromText(pageText: string, pageUrl?: string): Promise<ExtractedDetails>;
   generateEmail(details: ExtractedDetails, portfolioUrl?: string): Promise<EmailDraft>;
+  generateAnswer(question: string, company: string, position: string, profileContext: string): Promise<string>;
 }
 
 /**
@@ -128,6 +130,55 @@ Return ONLY valid JSON in this exact format:
     }
   }
   
+  async extractJobDetailsFromText(pageText: string, pageUrl?: string): Promise<ExtractedDetails> {
+    const urlHint = pageUrl ? `\nPage URL: ${pageUrl}` : '';
+    const systemPrompt = `You are a job posting analyzer. Extract the following information from the raw text of a job posting web page:
+- Recipient email address (recruiter, HR, or company hiring email — look for "apply", "contact", "email", "reach out", etc.)
+- Company name
+- Position title
+- Job location/region (country or city; use "Remote" if remote)
+
+Return ONLY valid JSON in this exact format:
+{"email":"recruiter@company.com","company":"Company Name","position":"Job Title","region":"Location"}
+
+If you cannot find a recruiter email, set email to an empty string "". Do NOT guess or fabricate an email.${urlHint}`;
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+    try {
+      const response = await fetch(`${this.baseURL}/chat/completions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${this.apiKey}` },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: `Extract job details from this page text:\n\n${pageText}` }
+          ],
+          max_tokens: 300,
+          temperature: 0.1
+        }),
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+      if (!response.ok) throw new Error(`OpenAI API error: ${response.statusText}`);
+      const data = await response.json();
+      const content = data.choices[0]?.message?.content;
+      if (!content) throw new Error('No response from OpenAI');
+      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) throw new Error('Could not parse JSON from response');
+      const extracted = JSON.parse(jsonMatch[0]);
+      if (!extracted.email) {
+        return { email: '', company: extracted.company?.trim() || '', position: extracted.position?.trim() || '', region: extracted.region?.trim() || 'Remote' };
+      }
+      return validateExtractedDetails(extracted);
+    } catch (error) {
+      clearTimeout(timeoutId);
+      if (error instanceof Error && error.name === 'AbortError') throw new Error('LLM request timed out after 30 seconds');
+      throw error;
+    }
+  }
+
   async generateEmail(details: ExtractedDetails, portfolioUrl?: string): Promise<EmailDraft> {
     const portfolioInstruction = portfolioUrl 
       ? `\n- MUST naturally include a link to my portfolio/profile in the body: ${portfolioUrl}`
@@ -222,6 +273,67 @@ Return ONLY valid JSON in this exact format:
       
       return draft as EmailDraft;
       
+    } catch (error) {
+      clearTimeout(timeoutId);
+      if (error instanceof Error && error.name === 'AbortError') {
+        throw new Error('LLM request timed out after 30 seconds');
+      }
+      throw error;
+    }
+  }
+
+  async generateAnswer(question: string, company: string, position: string, profileContext: string): Promise<string> {
+    const systemPrompt = `You are an expert career coach helping a candidate fill out a job application form.
+The user is applying for the position of "${position}" at "${company}".
+You will be provided with the user's Master Profile, which includes their experience, skills, and background.
+You must generate a tailored, professional, and concise answer to the specific question asked on the application form.
+Do not use placeholders. If you don't know something, speak generally but positively.
+Write the answer from the first-person perspective ("I"). Keep the tone professional, confident, and direct.`;
+
+    const userPrompt = `My Master Profile Context:
+${profileContext}
+
+Question from the application form:
+"${question}"
+
+Generate a strong, tailored answer (under 150 words):`;
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+    try {
+      const response = await fetch(`${this.baseURL}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.apiKey}`
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt }
+          ],
+          max_tokens: 300,
+          temperature: 0.7
+        }),
+        signal: controller.signal
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        throw new Error(`OpenAI API error: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      const content = data.choices[0]?.message?.content;
+
+      if (!content) {
+        throw new Error('No response from OpenAI');
+      }
+
+      return content.trim();
     } catch (error) {
       clearTimeout(timeoutId);
       if (error instanceof Error && error.name === 'AbortError') {
@@ -328,6 +440,54 @@ Return ONLY valid JSON in this exact format:
     }
   }
   
+  async extractJobDetailsFromText(pageText: string, pageUrl?: string): Promise<ExtractedDetails> {
+    const urlHint = pageUrl ? `\nPage URL: ${pageUrl}` : '';
+    const prompt = `You are a job posting analyzer. Extract the following from raw job posting page text:
+- Recipient email (recruiter/HR/hiring email — look for "apply", "contact", etc.)
+- Company name
+- Position title
+- Job location/region (use "Remote" if remote)
+
+Return ONLY valid JSON: {"email":"","company":"","position":"","region":""}
+If no email found, set email to "". Do NOT fabricate an email.${urlHint}
+
+Page text:
+${pageText}`;
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+    try {
+      const response = await fetch(
+        `${this.baseURL}/models/gemini-2.5-flash:generateContent?key=${this.apiKey}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: { temperature: 0.1, maxOutputTokens: 300 }
+          }),
+          signal: controller.signal
+        }
+      );
+      clearTimeout(timeoutId);
+      if (!response.ok) throw new Error(`Gemini API error: ${response.statusText}`);
+      const data = await response.json();
+      const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (!content) throw new Error('No response from Gemini');
+      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) throw new Error('Could not parse JSON from response');
+      const extracted = JSON.parse(jsonMatch[0]);
+      if (!extracted.email) {
+        return { email: '', company: extracted.company?.trim() || '', position: extracted.position?.trim() || '', region: extracted.region?.trim() || 'Remote' };
+      }
+      return validateExtractedDetails(extracted);
+    } catch (error) {
+      clearTimeout(timeoutId);
+      if (error instanceof Error && error.name === 'AbortError') throw new Error('LLM request timed out after 30 seconds');
+      throw error;
+    }
+  }
+
   async generateEmail(details: ExtractedDetails, portfolioUrl?: string): Promise<EmailDraft> {
     const portfolioInstruction = portfolioUrl 
       ? `\n- MUST naturally include a link to my portfolio/profile in the body: ${portfolioUrl}`
@@ -424,6 +584,69 @@ Return ONLY valid JSON in this exact format:
       
       return draft as EmailDraft;
       
+    } catch (error) {
+      clearTimeout(timeoutId);
+      if (error instanceof Error && error.name === 'AbortError') {
+        throw new Error('LLM request timed out after 30 seconds');
+      }
+      throw error;
+    }
+  }
+
+  async generateAnswer(question: string, company: string, position: string, profileContext: string): Promise<string> {
+    const prompt = `You are an expert career coach helping a candidate fill out a job application form.
+The user is applying for the position of "${position}" at "${company}".
+You will be provided with the user's Master Profile, which includes their experience, skills, and background.
+You must generate a tailored, professional, and concise answer to the specific question asked on the application form.
+Do not use placeholders. If you don't know something, speak generally but positively.
+Write the answer from the first-person perspective ("I"). Keep the tone professional, confident, and direct.
+
+My Master Profile Context:
+${profileContext}
+
+Question from the application form:
+"${question}"
+
+Generate a strong, tailored answer (under 150 words):`;
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+    try {
+      const response = await fetch(
+        `${this.baseURL}/models/gemini-2.5-flash:generateContent?key=${this.apiKey}`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            contents: [{
+              parts: [{ text: prompt }]
+            }],
+            generationConfig: {
+              temperature: 0.7,
+              maxOutputTokens: 300
+            }
+          }),
+          signal: controller.signal
+        }
+      );
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        throw new Error(`Gemini API error: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
+
+      if (!content) {
+        throw new Error('No response from Gemini');
+      }
+
+      return content.trim();
     } catch (error) {
       clearTimeout(timeoutId);
       if (error instanceof Error && error.name === 'AbortError') {

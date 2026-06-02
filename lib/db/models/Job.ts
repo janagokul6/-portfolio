@@ -39,7 +39,7 @@ const JobSchema = new Schema<IJobDocument>(
         },
         status: {
             type: String,
-            enum: ['pending', 'sent', 'failed'] as JobStatus[],
+            enum: ['pending', 'sent', 'failed', 'applied_via_portal'] as JobStatus[],
             required: true,
             default: 'pending',
             index: true,
@@ -92,6 +92,13 @@ const JobSchema = new Schema<IJobDocument>(
             type: Number,
             default: 0,
         },
+        source: {
+            type: String,
+            enum: ['email', 'extension', 'portal'],
+        },
+        portalName: {
+            type: String,
+        },
     },
     {
         // Disable Mongoose's automatic timestamps since we manage createdAt manually
@@ -124,6 +131,8 @@ JobSchema.methods.toJobRecord = function (): JobRecord {
         clicked: doc.clicked,
         clickedAt: doc.clickedAt,
         clickCount: doc.clickCount,
+        source: doc.source,
+        portalName: doc.portalName,
     };
 };
 

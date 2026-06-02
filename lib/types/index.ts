@@ -5,7 +5,7 @@
 /**
  * Job status type union
  */
-export type JobStatus = 'pending' | 'sent' | 'failed';
+export type JobStatus = 'pending' | 'sent' | 'failed' | 'applied_via_portal';
 
 /**
  * Core data structure representing a job application
@@ -30,6 +30,8 @@ export interface JobRecord {
   clicked?: boolean;             // Has any link been clicked?
   clickedAt?: string;            // ISO timestamp of first click
   clickCount?: number;           // Total number of click events
+  source?: 'email' | 'extension' | 'portal'; // How this application was submitted
+  portalName?: string;           // ATS portal name (e.g., 'greenhouse', 'lever')
 }
 
 /**
@@ -68,6 +70,30 @@ export interface UploadResponse {
 }
 
 /**
+ * Extension capture request payload (text-based, from Chrome extension)
+ */
+export interface CaptureRequest {
+  pageText: string;              // Raw text scraped from the job posting page
+  pageUrl?: string;              // URL of the job posting page
+  manualEmail?: string;          // Manually entered email when LLM couldn't find one
+}
+
+/**
+ * Extension capture response payload
+ */
+export interface CaptureResponse {
+  success: boolean;
+  jobRecord?: JobRecord;
+  error?: string;
+  requiresEmail?: boolean;       // True when LLM could not find a recruiter email
+  duplicate?: boolean;           // True when the same job is already in the queue
+  company?: string;              // Returned alongside requiresEmail for context
+  position?: string;             // Returned alongside requiresEmail for context
+  region?: string;               // Returned alongside requiresEmail for context
+}
+
+
+/**
  * Sync response payload
  */
 export interface SyncResponse {
@@ -83,6 +109,7 @@ export interface StoreStatusResponse {
   processed: number;
   opened: number;                // Jobs where email was opened
   clicked: number;               // Jobs where link was clicked
+  portalApplied: number;         // Jobs applied via portal
 }
 
 /**
@@ -135,4 +162,44 @@ export interface CronLogEntry {
   errors: string[];            // Error messages if any
   status: CronLogStatus;       // Overall result
   message?: string;            // Optional info message
+}
+
+/**
+ * Work Experience entry for Master Profile
+ */
+export interface WorkExperience {
+  company: string;
+  title: string;
+  startDate: string;
+  endDate: string;
+  current: boolean;
+  description: string;
+}
+
+/**
+ * Education entry for Master Profile
+ */
+export interface Education {
+  institution: string;
+  degree: string;
+  fieldOfStudy: string;
+  startDate: string;
+  endDate: string;
+}
+
+/**
+ * Master Profile for Auto-fill
+ */
+export interface MasterProfile {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  location: string;
+  linkedinUrl: string;
+  githubUrl: string;
+  portfolioUrl: string;
+  workExperience: WorkExperience[];
+  education: Education[];
+  skills: string; // Comma separated or free text
 }

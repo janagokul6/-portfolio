@@ -86,7 +86,7 @@ export function buildTrackedEmail(
   const baseUrl = getAppBaseUrl();
 
   // Start with the original text as the fallback
-  let text = plainTextBody;
+  const text = plainTextBody;
 
   // Convert body text to HTML
   let htmlBody = textToHtml(text);

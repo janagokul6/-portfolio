@@ -1,0 +1,36 @@
+{
+  "manifest_version": 3,
+  "name": "Auto-Apply Career Agent",
+  "version": "1.0.0",
+  "description": "Capture job postings with one click and queue them for automated email outreach.",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "128": "icon.png"
+    },
+    "default_title": "Auto-Apply — Capture This Job"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "*://*.greenhouse.io/*",
+        "*://jobs.lever.co/*",
+        "*://*.myworkdayjobs.com/*",
+        "*://jobs.ashbyhq.com/*"
+      ],
+      "js": ["portal-detector.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "icons": {
+    "128": "icon.png"
+  }
+}

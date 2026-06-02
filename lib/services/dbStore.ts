@@ -31,6 +31,8 @@ function docToJobRecord(doc: any): JobRecord {
         clicked: doc.clicked || false,
         clickedAt: doc.clickedAt || undefined,
         clickCount: doc.clickCount || 0,
+        source: doc.source || undefined,
+        portalName: doc.portalName || undefined,
     };
 }
 

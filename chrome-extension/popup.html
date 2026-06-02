@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Auto-Apply</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      width: 340px;
+      min-height: 200px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0f0f0f;
+      color: #e5e5e5;
+    }
+
+    /* ─── Header ─────────────────────────────────────────────── */
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 16px 12px;
+      border-bottom: 1px solid #1e1e1e;
+    }
+
+    .header-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #22c55e;
+      flex-shrink: 0;
+    }
+
+    .header-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: #fff;
+      letter-spacing: 0.01em;
+    }
+
+    .header-subtitle {
+      margin-left: auto;
+      font-size: 10px;
+      color: #555;
+    }
+
+    /* ─── Settings screen ─────────────────────────────────────── */
+    #settings-screen {
+      padding: 20px 16px;
+    }
+
+    #settings-screen h2 {
+      font-size: 13px;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 6px;
+    }
+
+    #settings-screen p {
+      font-size: 11px;
+      color: #777;
+      line-height: 1.5;
+      margin-bottom: 16px;
+    }
+
+    /* ─── Main screen ─────────────────────────────────────────── */
+    #main-screen {
+      padding: 14px 16px;
+    }
+
+    .url-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      border-radius: 6px;
+      padding: 8px 10px;
+      margin-bottom: 14px;
+    }
+
+    .url-badge-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #3b82f6;
+      flex-shrink: 0;
+    }
+
+    .url-badge-text {
+      font-size: 10px;
+      color: #888;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    /* ─── States ──────────────────────────────────────────────── */
+    .state {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      padding: 10px 0 6px;
+      gap: 8px;
+    }
+
+    .state.active {
+      display: flex;
+    }
+
+    .state-icon {
+      font-size: 28px;
+      line-height: 1;
+    }
+
+    .state-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: #fff;
+    }
+
+    .state-sub {
+      font-size: 11px;
+      color: #666;
+      line-height: 1.5;
+    }
+
+    /* spinner */
+    .spinner {
+      width: 28px;
+      height: 28px;
+      border: 2px solid #2a2a2a;
+      border-top-color: #3b82f6;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ─── Inputs ──────────────────────────────────────────────── */
+    label {
+      display: block;
+      font-size: 11px;
+      color: #666;
+      margin-bottom: 4px;
+    }
+
+    input[type="text"],
+    input[type="password"],
+    input[type="email"] {
+      width: 100%;
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      border-radius: 6px;
+      padding: 9px 10px;
+      font-size: 12px;
+      color: #e5e5e5;
+      outline: none;
+      margin-bottom: 12px;
+      transition: border-color 0.15s;
+    }
+
+    input:focus {
+      border-color: #3b82f6;
+    }
+
+    /* ─── Buttons ─────────────────────────────────────────────── */
+    .btn {
+      width: 100%;
+      padding: 10px;
+      border-radius: 7px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: opacity 0.15s, transform 0.1s;
+    }
+
+    .btn:active { transform: scale(0.98); }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .btn-primary {
+      background: #3b82f6;
+      color: #fff;
+    }
+
+    .btn-primary:hover:not(:disabled) { background: #2563eb; }
+
+    .btn-secondary {
+      background: #1e1e1e;
+      color: #aaa;
+      border: 1px solid #2a2a2a;
+      margin-top: 8px;
+    }
+
+    .btn-secondary:hover:not(:disabled) { background: #242424; }
+
+    /* ─── Footer ──────────────────────────────────────────────── */
+    .footer {
+      padding: 10px 16px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .settings-link {
+      font-size: 10px;
+      color: #444;
+      cursor: pointer;
+      text-decoration: none;
+    }
+
+    .settings-link:hover { color: #777; }
+
+    .divider {
+      height: 1px;
+      background: #1a1a1a;
+      margin: 0 16px;
+    }
+
+    /* missing email section */
+    #manual-email-section {
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid #1e1e1e;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ─── Settings Screen (first-run or via link) ─── -->
+  <div id="settings-screen" style="display:none;">
+    <h2>🔧 Setup Auto-Apply</h2>
+    <p>Enter your deployed Auto-Apply backend URL and API key. These are saved locally and never shared.</p>
+
+    <label for="input-app-url">Backend URL (your Vercel / server URL)</label>
+    <input type="text" id="input-app-url" placeholder="https://your-app.vercel.app" />
+
+    <label for="input-api-key">API Key (EXTENSION_API_KEY from your .env)</label>
+    <input type="password" id="input-api-key" placeholder="your-secret-key" />
+
+    <button class="btn btn-primary" id="btn-save-settings">Save Settings</button>
+    <p id="settings-error" style="color:#f87171;font-size:11px;margin-top:8px;display:none;"></p>
+  </div>
+
+  <!-- ─── Main Screen ─── -->
+  <div id="main-screen" style="display:none;">
+    <div class="header">
+      <div class="header-dot"></div>
+      <span class="header-title">Auto-Apply</span>
+      <span class="header-subtitle">Career Agent</span>
+    </div>
+
+    <div style="padding: 14px 16px;">
+      <!-- Current page URL badge -->
+      <div class="url-badge">
+        <div class="url-badge-dot"></div>
+        <span class="url-badge-text" id="current-url">Loading...</span>
+      </div>
+
+      <!-- State: Ready -->
+      <div class="state active" id="state-ready">
+        <div class="state-icon">📋</div>
+        <div class="state-title">Ready to Capture</div>
+        <div class="state-sub">Click below to extract the job details<br/>from this page and queue an email.</div>
+      </div>
+
+      <!-- State: Loading -->
+      <div class="state" id="state-loading">
+        <div class="spinner"></div>
+        <div class="state-title">Extracting details...</div>
+        <div class="state-sub" id="loading-sub">Reading page content</div>
+      </div>
+
+      <!-- State: Success -->
+      <div class="state" id="state-success">
+        <div class="state-icon">✅</div>
+        <div class="state-title">Job Queued!</div>
+        <div class="state-sub" id="success-text">Queued successfully</div>
+      </div>
+
+      <!-- State: Duplicate -->
+      <div class="state" id="state-duplicate">
+        <div class="state-icon">⚠️</div>
+        <div class="state-title">Already Applied</div>
+        <div class="state-sub" id="duplicate-text">You've already applied to this job.</div>
+      </div>
+
+      <!-- State: Error -->
+      <div class="state" id="state-error">
+        <div class="state-icon">❌</div>
+        <div class="state-title">Something went wrong</div>
+        <div class="state-sub" id="error-text">An error occurred.</div>
+      </div>
+
+      <!-- State: Autofill Success -->
+      <div class="state" id="state-autofill-success">
+        <div class="state-icon">✨</div>
+        <div class="state-title">Form Auto-filled!</div>
+        <div class="state-sub">Please review the fields before submitting.</div>
+      </div>
+
+      <!-- Main CTA buttons -->
+      <button class="btn btn-primary" id="btn-capture" style="margin-top:14px;">
+        Capture This Job
+      </button>
+      <button class="btn btn-primary" id="btn-autofill" style="margin-top:14px; display:none;">
+        Auto-fill Application
+      </button>
+
+      <!-- Missing email fallback -->
+      <div id="manual-email-section">
+        <label for="input-manual-email">No email found — enter recruiter email manually:</label>
+        <input type="email" id="input-manual-email" placeholder="recruiter@company.com" />
+        <button class="btn btn-primary" id="btn-submit-manual">Submit with This Email</button>
+      </div>
+
+      <!-- Retry / Reset buttons (shown contextually) -->
+      <button class="btn btn-secondary" id="btn-retry" style="display:none;">Try Again</button>
+      <button class="btn btn-secondary" id="btn-another" style="display:none;">Capture Another</button>
+    </div>
+
+    <div class="divider"></div>
+    <div class="footer">
+      <span class="settings-link" id="link-open-settings">⚙ Settings</span>
+      <span class="settings-link" id="link-open-dashboard">Open Dashboard ↗</span>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

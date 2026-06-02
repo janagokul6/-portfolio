@@ -117,7 +117,7 @@ export default function Home() {
   }, []);
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex">
+    <main className="flex-1 flex flex-row relative h-full">
       {/* Mobile backdrop: only when sidebar is open on small screens */}
       <div
         className="fixed inset-0 bg-black/50 z-40 transition-opacity md:hidden"
@@ -265,6 +265,8 @@ export default function Home() {
               <span className="text-green-400">👁️ {storeStatus.opened}</span>
               <span className="text-gray-400">|</span>
               <span className="text-blue-400">🔗 {storeStatus.clicked}</span>
+              <span className="text-gray-400">|</span>
+              <span className="text-purple-400">🏢 {storeStatus.portalApplied}</span>
             </>
           )}
         </div>

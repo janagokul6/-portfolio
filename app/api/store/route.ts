@@ -15,6 +15,7 @@ export async function GET() {
 
     const openedCount = allJobs.filter(j => j.opened).length;
     const clickedCount = allJobs.filter(j => j.clicked).length;
+    const portalAppliedCount = allJobs.filter(j => j.status === 'applied_via_portal').length;
 
     const response: StoreStatusResponse = {
       total: allJobs.length,
@@ -22,6 +23,7 @@ export async function GET() {
       processed: processedJobs.length,
       opened: openedCount,
       clicked: clickedCount,
+      portalApplied: portalAppliedCount,
     };
 
     return NextResponse.json(response, { status: 200 });

@@ -26,6 +26,8 @@ export default function HistoryComponent({ jobs, onRefresh }: HistoryComponentPr
         return { icon: '❌', color: 'text-red-600', label: 'Failed' };
       case 'pending':
         return { icon: '⏳', color: 'text-yellow-600', label: 'Pending' };
+      case 'applied_via_portal':
+        return { icon: '🏢', color: 'text-purple-600', label: 'Applied (Portal)' };
       default:
         return { icon: '❓', color: 'text-gray-600', label: 'Unknown' };
     }
@@ -130,8 +132,12 @@ export default function HistoryComponent({ jobs, onRefresh }: HistoryComponentPr
                 className={isExpanded ? 'block border-t border-gray-100' : 'hidden'}
               >
                 <div className="p-3 sm:p-4 pt-2 bg-gray-50/80 text-sm space-y-2">
-                  <DetailRow label="Email" value={job.email} />
-                  <DetailRow label="Region" value={job.region} />
+                  {job.status === 'applied_via_portal' ? (
+                    <DetailRow label="Source" value={`Portal (${job.portalName || 'Unknown ATS'})`} />
+                  ) : (
+                    <DetailRow label="Email" value={job.email} />
+                  )}
+                  {job.region && <DetailRow label="Region" value={job.region} />}
                   <DetailRow label="Created" value={formatTimestamp(job.createdAt)} />
                   {job.scheduledAt && (
                     <DetailRow label="Scheduled" value={formatTimestamp(job.scheduledAt)} />
