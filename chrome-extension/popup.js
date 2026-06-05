@@ -89,8 +89,8 @@ function showState(state) {
   });
 
   // Button visibility per state
-  btnCapture.style.display   = ['ready'].includes(state) && !isAtsPage ? 'block' : 'none';
-  btnAutofill.style.display  = ['ready'].includes(state) && isAtsPage ? 'block' : 'none';
+  btnCapture.style.display   = ['ready'].includes(state) ? 'block' : 'none';
+  btnAutofill.style.display  = ['ready'].includes(state) ? 'block' : 'none';
   btnRetry.style.display     = ['error'].includes(state) ? 'block' : 'none';
   btnAnother.style.display   = ['success', 'duplicate', 'autofill-success'].includes(state) ? 'block' : 'none';
   manualEmailSection.style.display = 'none'; // reset; shown only when needed

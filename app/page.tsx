@@ -1,305 +1,431 @@
-'use client';
+"use client";
+import { useEffect, useRef, useState, FormEvent } from "react";
 
-/**
- * Main Application Page
- * Sidebar layout: History in left sidebar (desktop always visible, mobile drawer via hamburger).
- * Upload remains the main content.
- * History is fetched from the database via /api/jobs.
- */
+// ═══════ HOOKS ═══════
 
-import { useState, useEffect, useCallback } from 'react';
-import { JobRecord, StoreStatusResponse, CronLogEntry } from '@/lib/types';
-import UploadComponent from '@/components/UploadComponent';
-import HistoryComponent from '@/components/HistoryComponent';
-import CronTimeline from '@/components/CronTimeline';
-
-const SIDEBAR_ID = 'history-sidebar';
-
-export default function Home() {
-  const [jobs, setJobs] = useState<JobRecord[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [storeStatus, setStoreStatus] = useState<StoreStatusResponse | null>(null);
-  const [cronLogs, setCronLogs] = useState<CronLogEntry[]>([]);
-
-  /**
-   * Fetch current database store status
-   */
-  const fetchStoreStatus = useCallback(async () => {
-    try {
-      const res = await fetch('/api/store');
-      if (res.ok) {
-        const data: StoreStatusResponse = await res.json();
-        setStoreStatus(data);
-      }
-    } catch {
-      setStoreStatus(null);
-    }
-  }, []);
-
-  /**
-   * Fetch all jobs from the database
-   */
-  const fetchJobs = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const response = await fetch('/api/jobs');
-      if (!response.ok) {
-        throw new Error('Failed to fetch jobs');
-      }
-      const data = await response.json();
-      setJobs(data.jobs || []);
-    } catch (err) {
-      console.error('Fetch jobs error:', err);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  /**
-   * Fetch recent cron hit logs
-   */
-  const fetchCronLogs = useCallback(async () => {
-    try {
-      const res = await fetch('/api/cron-logs?days=3');
-      if (res.ok) {
-        const data = await res.json();
-        setCronLogs(data.logs || []);
-      }
-    } catch {
-      setCronLogs([]);
-    }
-  }, []);
-
-  const handleUploadComplete = (jobRecord: JobRecord) => {
-    // Optimistically add to local state; DB already has it via the API
-    setJobs((prev) => [jobRecord, ...prev]);
-    setError(null);
-    fetchStoreStatus();
-  };
-
-  const handleError = (errorMessage: string) => {
-    setError(errorMessage);
-    setTimeout(() => setError(null), 5000);
-  };
-
-  const handleRefresh = useCallback(() => {
-    fetchJobs();
-    fetchStoreStatus();
-    fetchCronLogs();
-  }, [fetchJobs, fetchStoreStatus, fetchCronLogs]);
-
-  /**
-   * Load jobs from database on mount
-   */
+function useScrollBar() {
   useEffect(() => {
-    fetchJobs();
-  }, [fetchJobs]);
-
-  useEffect(() => {
-    fetchStoreStatus();
-  }, [fetchStoreStatus]);
-
-  useEffect(() => {
-    fetchCronLogs();
-  }, [fetchCronLogs]);
-
-  /**
-   * Close mobile sidebar on Escape
-   */
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setSidebarOpen(false);
+    const bar = document.getElementById("scroll-bar");
+    if (!bar) return;
+    const tick = () => {
+      const h = document.documentElement.scrollHeight - window.innerHeight;
+      bar.style.transform = `scaleX(${h > 0 ? window.scrollY / h : 0})`;
     };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener("scroll", tick, { passive: true });
+    return () => window.removeEventListener("scroll", tick);
   }, []);
+}
+
+function useNavScroll() {
+  useEffect(() => {
+    const nav = document.getElementById("nav");
+    if (!nav) return;
+    const fn = () => nav.classList.toggle("scrolled", window.scrollY > 40);
+    window.addEventListener("scroll", fn, { passive: true });
+    return () => window.removeEventListener("scroll", fn);
+  }, []);
+}
+
+function useReveal(ref: React.RefObject<HTMLElement | null>) {
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      (entries) => entries.forEach((e) => e.isIntersecting && e.target.classList.add("vis")),
+      { threshold: 0.08, rootMargin: "0px 0px -40px 0px" }
+    );
+    el.querySelectorAll(".rv, .wi").forEach((c) => obs.observe(c));
+    return () => obs.disconnect();
+  }, []);
+}
+
+function useHeroMarqueeScroll() {
+  useEffect(() => {
+    const grid = document.getElementById("hero-mq-grid");
+    if (!grid) return;
+    let isScrolling: NodeJS.Timeout;
+    const onScroll = () => {
+      grid.querySelectorAll(".hero-mq-col").forEach((col) => {
+        col.getAnimations().forEach(a => { a.playbackRate = 4; });
+      });
+      clearTimeout(isScrolling);
+      isScrolling = setTimeout(() => {
+        grid.querySelectorAll(".hero-mq-col").forEach((col) => {
+          col.getAnimations().forEach(a => { a.playbackRate = 1; });
+        });
+      }, 100);
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+}
+
+function useSpotlightTilt(ref: React.RefObject<HTMLElement | null>) {
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const cards = el.querySelectorAll<HTMLElement>(".p-card");
+    cards.forEach((card) => {
+      const onMove = (e: MouseEvent) => {
+        const r = card.getBoundingClientRect();
+        card.style.setProperty("--mx", `${e.clientX - r.left}px`);
+        card.style.setProperty("--my", `${e.clientY - r.top}px`);
+        const x = (e.clientX - r.left) / r.width - 0.5;
+        const y = (e.clientY - r.top) / r.height - 0.5;
+        card.style.transform = `perspective(800px) rotateY(${x * 4}deg) rotateX(${-y * 4}deg) scale(1.005)`;
+      };
+      const onLeave = () => { card.style.transform = ""; };
+      card.addEventListener("mousemove", onMove, { passive: true });
+      card.addEventListener("mouseleave", onLeave);
+    });
+  }, []);
+}
+
+// ═══════ COMPONENTS ═══════
+
+function ProjectSnapshotCard() {
+  return (
+    <div className="snap-card">
+      <div className="snap-hdr">
+        <div className="snap-dot" />
+        <div className="snap-dot" />
+        <div className="snap-dot" />
+      </div>
+      <div className="snap-line short" />
+      <div className="snap-line" style={{ width: '80%' }} />
+      <div className="snap-box" />
+      <div className="snap-line" style={{ width: '60%' }} />
+    </div>
+  );
+}
+
+function HeroMarqueeBackground() {
+  const cols = Array.from({ length: 12 });
+  const cards = Array.from({ length: 16 }); // Enough cards to scroll endlessly
+  return (
+    <div className="hero-mq-wrapper">
+      <div id="hero-mq-grid" className="hero-mq-grid">
+        {cols.map((_, i) => (
+          <div key={i} className={`hero-mq-col ${i % 2 === 0 ? 'even-col' : 'odd-col'}`}>
+            {cards.map((_, j) => (
+              <ProjectSnapshotCard key={j} />
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function MagBtn({ href, children, className = "", type }: {
+  href?: string; children: React.ReactNode; className?: string; type?: "submit";
+}) {
+  const ref = useRef<HTMLAnchorElement & HTMLButtonElement>(null);
+  useEffect(() => {
+    const btn = ref.current;
+    if (!btn) return;
+    let f = 0;
+    const onM = (e: MouseEvent) => {
+      const r = btn.getBoundingClientRect();
+      const dx = (e.clientX - r.left - r.width / 2) * 0.2;
+      const dy = (e.clientY - r.top - r.height / 2) * 0.2;
+      cancelAnimationFrame(f);
+      f = requestAnimationFrame(() => { btn.style.transform = `translate(${dx}px,${dy}px)`; });
+    };
+    const onL = () => { cancelAnimationFrame(f); btn.style.transform = ""; };
+    btn.addEventListener("mousemove", onM, { passive: true });
+    btn.addEventListener("mouseleave", onL);
+    return () => { btn.removeEventListener("mousemove", onM); btn.removeEventListener("mouseleave", onL); };
+  }, []);
+
+  if (type === "submit") {
+    return <button ref={ref} type="submit" className={`btn ${className}`}>{children}</button>;
+  }
+  return <a ref={ref} href={href} className={`btn ${className}`} target={href?.startsWith("http") ? "_blank" : undefined} rel={href?.startsWith("http") ? "noopener noreferrer" : undefined}>{children}</a>;
+}
+
+function SplitText({ text, delay = 0 }: { text: string; delay?: number }) {
+  const words = text.split(" ");
+  return <>
+    {words.map((w, i) => (
+      <span key={i} className="wr">
+        <span className="wi" style={{ transitionDelay: `${delay + i * 0.05}s` }}>{w}</span>
+        {i < words.length - 1 ? "\u00A0" : ""}
+      </span>
+    ))}
+  </>;
+}
+
+const skills = [
+  "React", "Next.js", "TypeScript", "Node.js", "Python", "Go",
+  "AWS", "Docker", "Kubernetes", "PostgreSQL", "MongoDB", "Redis",
+  "GraphQL", "CI/CD", "Terraform", "System Design", "REST APIs", "Microservices",
+];
+
+function Marquee() {
+  return (
+    <div className="mq-wrap">
+      <div className="mq-track">
+        {[...skills, ...skills].map((s, i) => (
+          <span key={i} className="mq-item">{s}</span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ═══════ DATA ═══════
+
+const projects = [
+  {
+    tag: "Full Stack · AI",
+    title: "Auto Apply",
+    desc: "AI-powered job follow-up automation. Upload a job posting screenshot — AI extracts details, writes a tailored email, sends it at the optimal time in the right timezone.",
+    stack: ["Next.js", "TypeScript", "GPT-4", "Gemini", "Chrome Ext", "SMTP"],
+    size: "c7", link: "/dashboard",
+  },
+  {
+    tag: "E-Commerce",
+    title: "Swago Jr.",
+    desc: "Full-stack e-commerce with admin panel, Razorpay payments, real-time inventory, and masterclass booking.",
+    stack: ["Next.js", "Supabase", "Razorpay", "Framer Motion"],
+    size: "c5",
+  },
+  {
+    tag: "DevOps",
+    title: "Infra Toolkit",
+    desc: "Containerized microservices pipeline with automated scaling, health checks, and zero-downtime deployments.",
+    stack: ["Docker", "Kubernetes", "Terraform", "GitHub Actions", "AWS"],
+    size: "c5",
+  },
+  {
+    tag: "Open Source",
+    title: "Dev Utilities",
+    desc: "CLI tools and VS Code extensions for workflow automation — scaffolding, migration helpers, and code generators.",
+    stack: ["Go", "Node.js", "Python", "VS Code API"],
+    size: "c7",
+  },
+];
+
+const timeline = [
+  { date: "2024 — Present", role: "Senior Software Engineer", co: "", desc: "Leading frontend architecture and full-stack delivery. Scalable UI systems, mentoring, and CI/CD improvements." },
+  { date: "2022 — 2024", role: "Full Stack Developer", co: "", desc: "Shipped production features across React/Next.js frontends and Node.js backends. End-to-end ownership." },
+  { date: "2021 — 2022", role: "Frontend Engineer", co: "", desc: "Built responsive, accessible web apps with React. Performance optimization and design system development." },
+];
+
+// ═══════════════════════════════
+//  PORTFOLIO
+// ═══════════════════════════════
+
+export default function Portfolio() {
+  const heroRef = useRef<HTMLElement>(null);
+  const aboutRef = useRef<HTMLElement>(null);
+  const projRef = useRef<HTMLElement>(null);
+  const expRef = useRef<HTMLElement>(null);
+  const contactRef = useRef<HTMLElement>(null);
+
+  const [formStatus, setFormStatus] = useState<"idle" | "sent">("idle");
+
+  useScrollBar();
+  useNavScroll();
+  useReveal(heroRef);
+  useReveal(aboutRef);
+  useReveal(projRef);
+  useReveal(expRef);
+  useReveal(contactRef);
+  useHeroMarqueeScroll();
+  useSpotlightTilt(projRef);
+
+  const handleSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    setFormStatus("sent");
+    setTimeout(() => setFormStatus("idle"), 3000);
+  };
 
   return (
-    <main className="flex-1 flex flex-row relative h-full">
-      {/* Mobile backdrop: only when sidebar is open on small screens */}
-      <div
-        className="fixed inset-0 bg-black/50 z-40 transition-opacity md:hidden"
-        style={{ opacity: sidebarOpen ? 1 : 0, pointerEvents: sidebarOpen ? 'auto' : 'none' }}
-        onClick={() => setSidebarOpen(false)}
-        aria-hidden="true"
-      />
+    <>
+      <div id="scroll-bar" />
 
-      {/* Sidebar: desktop = in flow; mobile = fixed drawer */}
-      <aside
-        id={SIDEBAR_ID}
-        className={`
-          flex flex-col flex-shrink-0 w-72 md:w-80
-          bg-gray-50 border-r border-gray-200
-          md:relative md:translate-x-0 md:transition-none
-          fixed inset-y-0 left-0 z-50
-          transition-transform duration-200 ease-out
-          ${sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
-        `}
-        aria-label="Application history"
-      >
-        {/* Sidebar header: title + close (mobile) */}
-        <div className="flex items-center justify-between gap-2 p-4 border-b border-gray-200 flex-shrink-0">
-          <h2 className="text-lg font-semibold text-gray-800 truncate">
-            History
-          </h2>
-          <button
-            type="button"
-            onClick={() => setSidebarOpen(false)}
-            className="md:hidden p-2 rounded-lg text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-            aria-label="Close history sidebar"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-        {/* History: header fixed, list scrolls inside */}
-        <div className="flex-1 min-h-0 flex flex-col p-4 overflow-hidden">
-          <HistoryComponent jobs={jobs} onRefresh={handleRefresh} />
-        </div>
-      </aside>
-
-      {/* Main content - extra bottom padding for fixed status bar */}
-      <div className="flex-1 min-w-0 flex flex-col pb-14">
-        <div className="container mx-auto px-4 py-6 md:py-8 flex-1">
-          {/* Header with hamburger (mobile) */}
-          <div className="flex items-center gap-3 mb-6 md:mb-8">
-            <button
-              type="button"
-              onClick={() => setSidebarOpen(true)}
-              className="md:hidden p-2 rounded-lg text-gray-600 hover:bg-white/80 hover:text-gray-900"
-              aria-label="Open history sidebar"
-              aria-expanded={sidebarOpen}
-              aria-controls={SIDEBAR_ID}
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
-            </button>
-            <div className="text-center md:text-center flex-1 min-w-0">
-              <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-1">
-                Job Email Scheduler
-              </h1>
-              <p className="text-gray-600 text-sm md:text-base">
-                Upload job screenshots and automate your follow-up emails
-              </p>
-            </div>
-            {/* Spacer for mobile so title stays centered */}
-            <div className="w-10 h-10 md:hidden flex-shrink-0" aria-hidden="true" />
+      {/* NAV */}
+      <nav id="nav" className="nav">
+        <div className="wrap nav-inner">
+          <a href="#" className="nav-name">gokul<span>.</span>dev</a>
+          <div className="nav-right">
+            <a href="#about" className="nav-link">About</a>
+            <a href="#work" className="nav-link">Work</a>
+            <a href="#exp" className="nav-link">Experience</a>
+            <MagBtn href="#contact" className="btn-fill" >Let&apos;s Talk</MagBtn>
           </div>
+        </div>
+      </nav>
 
-          {/* Error Display */}
-          {error && (
-            <div className="max-w-2xl mx-auto mb-6">
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
-                <svg
-                  className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-                <div className="flex-1">
-                  <p className="text-red-800 font-medium">Error</p>
-                  <p className="text-red-700 text-sm">{error}</p>
+      {/* HERO */}
+      <section className="hero" ref={heroRef}>
+        <HeroMarqueeBackground />
+        <div className="hero-content">
+          <div className="rv hero-badge">
+            <span className="hero-dot" />
+            Available for opportunities
+          </div>
+          <h1>
+            <SplitText text="I design & build" delay={0.1} />
+            <br />
+            <span className="wr"><span className="wi blue" style={{ transitionDelay: "0.4s" }}>digital</span></span>
+            {"\u00A0"}
+            <SplitText text="experiences" delay={0.46} />
+          </h1>
+          <p className="rv d2 hero-sub">
+            Full Stack Engineer with 4+ years crafting performant web applications,
+            scalable systems, and interfaces that people actually enjoy using.
+          </p>
+          <div className="rv d3 hero-btns">
+            <MagBtn href="#work" className="btn-fill btn-lg">View Projects →</MagBtn>
+            <MagBtn href="https://github.com/janagokul6" className="btn-ghost btn-lg">GitHub ↗</MagBtn>
+          </div>
+        </div>
+        <div className="scroll-cue">
+          <span>Scroll</span>
+          <div className="scroll-bar-anim" />
+        </div>
+      </section>
+
+      <Marquee />
+
+      {/* ABOUT */}
+      <section id="about" className="section" ref={aboutRef}>
+        <div className="wrap">
+          <div style={{ marginBottom: "3rem" }}>
+            <p className="rv s-label">About</p>
+            <h2 className="rv d1 s-title">A bit about me</h2>
+          </div>
+          <div className="about-grid">
+            <div>
+              <div className="rv d2 about-text">
+                <p>
+                  I&apos;m a software engineer who thrives at the intersection of
+                  <strong> design and engineering</strong>. Frontend is where I come alive —
+                  there&apos;s something deeply satisfying about making complex systems
+                  feel effortless.
+                </p>
+                <p>
+                  Over the past 4+ years, I&apos;ve built production apps with
+                  <strong> React, Next.js, Node.js</strong>, and various cloud platforms.
+                  I care about the details: smooth interactions, clean architecture,
+                  systems that scale, and deploys that don&apos;t break at 2 AM.
+                </p>
+                <p>
+                  Outside of work, I build side projects that automate tedious
+                  things — because life&apos;s too short for manual follow-up emails.
+                </p>
+              </div>
+              <div className="rv d3 about-stats">
+                <div className="a-stat">
+                  <div className="a-stat-val">4+</div>
+                  <div className="a-stat-lbl">Years exp</div>
                 </div>
-                <button
-                  onClick={() => setError(null)}
-                  className="text-red-600 hover:text-red-800"
-                >
-                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                    <path
-                      fillRule="evenodd"
-                      d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                </button>
+                <div className="a-stat">
+                  <div className="a-stat-val">20+</div>
+                  <div className="a-stat-lbl">Projects</div>
+                </div>
+                <div className="a-stat">
+                  <div className="a-stat-val">Full</div>
+                  <div className="a-stat-lbl">Stack</div>
+                </div>
               </div>
             </div>
-          )}
-
-          {/* Upload - main content */}
-          <div className="max-w-2xl mx-auto">
-            <div className="bg-white rounded-xl shadow-lg p-6">
-              <h2 className="text-2xl font-semibold text-gray-800 mb-6">
-                Upload Screenshot
-              </h2>
-              <UploadComponent
-                onUploadComplete={handleUploadComplete}
-                onError={handleError}
-              />
+            <div className="rv d4">
+              <div className="avatar-ring">
+                <div className="avatar-inner">GJ</div>
+              </div>
             </div>
           </div>
+        </div>
+      </section>
 
-          {/* Footer */}
-          <div className="text-center mt-12 text-gray-600 text-sm">
-            <p>
-              Emails are automatically sent at scheduled times based on job region
-            </p>
+      {/* PROJECTS */}
+      <section id="work" className="section" ref={projRef} style={{ background: "var(--bg2)" }}>
+        <div className="wrap">
+          <div style={{ marginBottom: "3rem" }}>
+            <p className="rv s-label">Selected Work</p>
+            <h2 className="rv d1 s-title">Things I&apos;ve built</h2>
+            <p className="rv d2 s-sub">Professional work and passion projects — each one pushed me further.</p>
+          </div>
+          <div className="rv d3 bento">
+            {projects.map((p, i) => (
+              <div key={i} className={`p-card ${p.size}`}>
+                <span className="p-tag">{p.tag}</span>
+                <h3>{p.title}</h3>
+                <p>{p.desc}</p>
+                <div className="p-stack">
+                  {p.stack.map((t) => <span key={t}>{t}</span>)}
+                </div>
+                {p.link && (
+                  <a href={p.link} className="p-link">View Live →</a>
+                )}
+              </div>
+            ))}
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* Database store status bar - fixed at bottom */}
-      <div className="fixed bottom-0 left-0 right-0 z-30 bg-gray-800 text-gray-200 text-xs sm:text-sm px-3 py-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-t border-gray-700">
-        {/* Left: Store counts */}
-        <div className="flex items-center gap-x-3">
-          <span className="font-medium">Store:</span>
-          {storeStatus === null ? (
-            <span className="text-gray-400">—</span>
-          ) : (
-            <>
-              <span>Total {storeStatus.total}</span>
-              <span className="text-gray-400">|</span>
-              <span>Pending {storeStatus.pending}</span>
-              <span className="text-gray-400">|</span>
-              <span>Processed {storeStatus.processed}</span>
-              <span className="text-gray-400">|</span>
-              <span className="text-green-400">👁️ {storeStatus.opened}</span>
-              <span className="text-gray-400">|</span>
-              <span className="text-blue-400">🔗 {storeStatus.clicked}</span>
-              <span className="text-gray-400">|</span>
-              <span className="text-purple-400">🏢 {storeStatus.portalApplied}</span>
-            </>
-          )}
+      {/* EXPERIENCE */}
+      <section id="exp" className="section" ref={expRef}>
+        <div className="wrap" style={{ maxWidth: 700 }}>
+          <div style={{ marginBottom: "3rem" }}>
+            <p className="rv s-label">Experience</p>
+            <h2 className="rv d1 s-title">Where I&apos;ve worked</h2>
+          </div>
+          <div className="timeline">
+            {timeline.map((t, i) => (
+              <div key={i} className={`rv d${i + 1} tl-item`}>
+                <div className="tl-date">{t.date}</div>
+                <h3>{t.role}</h3>
+                {t.co && <span className="tl-co">{t.co}</span>}
+                <p>{t.desc}</p>
+              </div>
+            ))}
+          </div>
         </div>
-        {/* Right: Cron timeline */}
-        <CronTimeline logs={cronLogs} />
-      </div>
+      </section>
 
-      {/* Loading Indicator */}
-      {isLoading && (
-        <div className="fixed bottom-4 right-4 bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-2">
-          <svg
-            className="animate-spin h-4 w-4"
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-          >
-            <circle
-              className="opacity-25"
-              cx="12"
-              cy="12"
-              r="10"
-              stroke="currentColor"
-              strokeWidth="4"
-            />
-            <path
-              className="opacity-75"
-              fill="currentColor"
-              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-            />
-          </svg>
-          Loading...
+      {/* CONTACT */}
+      <section id="contact" className="section" ref={contactRef} style={{ background: "var(--bg2)" }}>
+        <div className="wrap">
+          <div style={{ marginBottom: "3rem" }}>
+            <p className="rv s-label">Connect</p>
+            <h2 className="rv d1 s-title">Let&apos;s work together</h2>
+            <p className="rv d2 s-sub">Got a project, a question, or just want to say hi? I&apos;m all ears.</p>
+          </div>
+          <div className="rv d3 contact-grid">
+            <form className="contact-form" onSubmit={handleSubmit}>
+              <input className="form-field" placeholder="Name" required />
+              <input className="form-field" type="email" placeholder="Email" required />
+              <textarea className="form-field" placeholder="Your message..." required />
+              <MagBtn type="submit" className="btn-fill btn-lg" style={{ alignSelf: "flex-start" } as React.CSSProperties}>
+                {formStatus === "sent" ? "✓ Message Sent!" : "Send Message →"}
+              </MagBtn>
+            </form>
+            <div>
+              <p className="rv" style={{ color: "var(--gray)", fontSize: "0.95rem", lineHeight: 1.7, marginBottom: "1.5rem" }}>
+                Open to full-time roles, freelance projects, and interesting collaborations.
+                Feel free to reach out through any channel.
+              </p>
+              <div className="social-links">
+                <a href="https://github.com/janagokul6" target="_blank" rel="noopener noreferrer" className="social-link">GitHub ↗</a>
+                <a href="https://linkedin.com/in/" target="_blank" rel="noopener noreferrer" className="social-link">LinkedIn ↗</a>
+                <a href="mailto:gokuljanarthanan@gmail.com" className="social-link">Email ↗</a>
+              </div>
+            </div>
+          </div>
         </div>
-      )}
-    </main>
+      </section>
+
+      {/* FOOTER */}
+      <footer className="footer">
+        <p className="footer-note">
+          Designed & built by Gokul Janarthanan · © {new Date().getFullYear()}
+        </p>
+      </footer>
+    </>
   );
 }
