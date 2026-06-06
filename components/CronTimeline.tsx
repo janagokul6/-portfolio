@@ -81,8 +81,8 @@ export default function CronTimeline({ logs }: CronTimelineProps) {
     if (logs.length === 0) {
         return (
             <div className="flex items-center gap-2">
-                <span className="font-medium text-gray-300">Cron:</span>
-                <span className="text-gray-500 text-xs">no recent hits</span>
+                <span className="font-medium text-[var(--white)]">Cron:</span>
+                <span className="text-[var(--gray)] text-xs">no recent hits</span>
             </div>
         );
     }
@@ -93,7 +93,7 @@ export default function CronTimeline({ logs }: CronTimelineProps) {
 
     return (
         <div className="flex items-center gap-2 relative">
-            <span className="font-medium text-gray-300 flex-shrink-0">Cron:</span>
+            <span className="font-medium text-[var(--white)] flex-shrink-0">Cron:</span>
 
             {/* Dot timeline */}
             <div className="flex items-center gap-[3px]">
@@ -116,11 +116,11 @@ export default function CronTimeline({ logs }: CronTimelineProps) {
                             {/* Tooltip */}
                             {isHovered && (
                                 <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50 pointer-events-none">
-                                    <div className="bg-gray-900 text-white text-xs rounded-lg px-3 py-2 whitespace-nowrap shadow-xl border border-gray-700">
+                                    <div className="bg-[var(--bg2)] text-[var(--white)] text-xs rounded-lg px-3 py-2 whitespace-nowrap shadow-xl border border-[var(--border)]">
                                         <div className="font-medium mb-1">
                                             {formatLocalDate(log.hitAt)} {formatLocalTime(log.hitAt)}
                                         </div>
-                                        <div className="flex flex-col gap-0.5 text-gray-300">
+                                        <div className="flex flex-col gap-0.5 text-[var(--gray)]">
                                             <span>
                                                 Source: <span className={log.source === 'cron' ? 'text-blue-300' : 'text-purple-300'}>{log.source === 'cron' ? '⏰ Cron' : '🖱 UI'}</span>
                                             </span>
@@ -135,7 +135,7 @@ export default function CronTimeline({ logs }: CronTimelineProps) {
                                             )}
                                         </div>
                                         {/* Arrow */}
-                                        <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900" />
+                                        <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-[var(--border)]" />
                                     </div>
                                 </div>
                             )}
@@ -145,7 +145,7 @@ export default function CronTimeline({ logs }: CronTimelineProps) {
             </div>
 
             {/* Last hit label */}
-            <span className="text-gray-400 text-xs flex-shrink-0 hidden sm:inline">
+            <span className="text-[var(--dim)] text-xs flex-shrink-0 hidden sm:inline">
                 last: {formatLocalTime(latestLog.hitAt)}
             </span>
         </div>

@@ -3,18 +3,7 @@ import { useEffect, useRef, useState, FormEvent } from "react";
 
 // ═══════ HOOKS ═══════
 
-function useScrollBar() {
-  useEffect(() => {
-    const bar = document.getElementById("scroll-bar");
-    if (!bar) return;
-    const tick = () => {
-      const h = document.documentElement.scrollHeight - window.innerHeight;
-      bar.style.transform = `scaleX(${h > 0 ? window.scrollY / h : 0})`;
-    };
-    window.addEventListener("scroll", tick, { passive: true });
-    return () => window.removeEventListener("scroll", tick);
-  }, []);
-}
+// ═══════ HOOKS ═══════
 
 function useNavScroll() {
   useEffect(() => {
@@ -31,32 +20,16 @@ function useReveal(ref: React.RefObject<HTMLElement | null>) {
     const el = ref.current;
     if (!el) return;
     const obs = new IntersectionObserver(
-      (entries) => entries.forEach((e) => e.isIntersecting && e.target.classList.add("vis")),
-      { threshold: 0.08, rootMargin: "0px 0px -40px 0px" }
+      (entries) => entries.forEach((e) => {
+        if (e.isIntersecting) {
+          e.target.classList.add("vis");
+          e.target.querySelectorAll(".wi").forEach(child => child.classList.add("vis"));
+        }
+      }),
+      { threshold: 0.05, rootMargin: "0px 0px -40px 0px" }
     );
-    el.querySelectorAll(".rv, .wi").forEach((c) => obs.observe(c));
+    el.querySelectorAll(".rv, .wr").forEach((c) => obs.observe(c));
     return () => obs.disconnect();
-  }, []);
-}
-
-function useHeroMarqueeScroll() {
-  useEffect(() => {
-    const grid = document.getElementById("hero-mq-grid");
-    if (!grid) return;
-    let isScrolling: NodeJS.Timeout;
-    const onScroll = () => {
-      grid.querySelectorAll(".hero-mq-col").forEach((col) => {
-        col.getAnimations().forEach(a => { a.playbackRate = 4; });
-      });
-      clearTimeout(isScrolling);
-      isScrolling = setTimeout(() => {
-        grid.querySelectorAll(".hero-mq-col").forEach((col) => {
-          col.getAnimations().forEach(a => { a.playbackRate = 1; });
-        });
-      }, 100);
-    };
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
   }, []);
 }
 
@@ -83,42 +56,45 @@ function useSpotlightTilt(ref: React.RefObject<HTMLElement | null>) {
 
 // ═══════ COMPONENTS ═══════
 
-function ProjectSnapshotCard() {
-  return (
-    <div className="snap-card">
-      <div className="snap-hdr">
-        <div className="snap-dot" />
-        <div className="snap-dot" />
-        <div className="snap-dot" />
-      </div>
-      <div className="snap-line short" />
-      <div className="snap-line" style={{ width: '80%' }} />
-      <div className="snap-box" />
-      <div className="snap-line" style={{ width: '60%' }} />
-    </div>
-  );
-}
-
 function HeroMarqueeBackground() {
-  const cols = Array.from({ length: 12 });
-  const cards = Array.from({ length: 16 }); // Enough cards to scroll endlessly
+  const cols = Array.from({ length: 8 });
+  const baseImages = [
+    '/projects/crypto_dark_1780659960854.png',
+    '/projects/ecommerce_dark_1780659989939.png',
+    '/projects/portfolio_dark_1780659976580.png',
+    '/projects/saas_dark_1780659947275.png'
+  ];
+  const sequence = [...baseImages, ...baseImages]; // 8 images long
+
   return (
     <div className="hero-mq-wrapper">
       <div id="hero-mq-grid" className="hero-mq-grid">
         {cols.map((_, i) => (
           <div key={i} className={`hero-mq-col ${i % 2 === 0 ? 'even-col' : 'odd-col'}`}>
-            {cards.map((_, j) => (
-              <ProjectSnapshotCard key={j} />
-            ))}
+            <div className="mq-track-inner">
+              {sequence.map((src, j) => (
+                <div key={`a-${j}`} className="snap-card">
+                  <img src={src} className="snap-img" alt="Project snapshot" />
+                </div>
+              ))}
+            </div>
+            <div className="mq-track-inner">
+              {sequence.map((src, j) => (
+                <div key={`b-${j}`} className="snap-card">
+                  <img src={src} className="snap-img" alt="Project snapshot" />
+                </div>
+              ))}
+            </div>
           </div>
         ))}
       </div>
+      <div className="hero-glass-overlay" />
     </div>
   );
 }
 
-function MagBtn({ href, children, className = "", type }: {
-  href?: string; children: React.ReactNode; className?: string; type?: "submit";
+function MagBtn({ href, children, className = "", type, style }: {
+  href?: string; children: React.ReactNode; className?: string; type?: "submit"; style?: React.CSSProperties;
 }) {
   const ref = useRef<HTMLAnchorElement & HTMLButtonElement>(null);
   useEffect(() => {
@@ -139,9 +115,9 @@ function MagBtn({ href, children, className = "", type }: {
   }, []);
 
   if (type === "submit") {
-    return <button ref={ref} type="submit" className={`btn ${className}`}>{children}</button>;
+    return <button ref={ref} type="submit" className={`btn ${className}`} style={style}>{children}</button>;
   }
-  return <a ref={ref} href={href} className={`btn ${className}`} target={href?.startsWith("http") ? "_blank" : undefined} rel={href?.startsWith("http") ? "noopener noreferrer" : undefined}>{children}</a>;
+  return <a ref={ref} href={href} className={`btn ${className}`} style={style} target={href?.startsWith("http") ? "_blank" : undefined} rel={href?.startsWith("http") ? "noopener noreferrer" : undefined}>{children}</a>;
 }
 
 function SplitText({ text, delay = 0 }: { text: string; delay?: number }) {
@@ -226,14 +202,12 @@ export default function Portfolio() {
 
   const [formStatus, setFormStatus] = useState<"idle" | "sent">("idle");
 
-  useScrollBar();
   useNavScroll();
   useReveal(heroRef);
   useReveal(aboutRef);
   useReveal(projRef);
   useReveal(expRef);
   useReveal(contactRef);
-  useHeroMarqueeScroll();
   useSpotlightTilt(projRef);
 
   const handleSubmit = (e: FormEvent) => {
@@ -244,8 +218,6 @@ export default function Portfolio() {
 
   return (
     <>
-      <div id="scroll-bar" />
-
       {/* NAV */}
       <nav id="nav" className="nav">
         <div className="wrap nav-inner">
@@ -288,8 +260,6 @@ export default function Portfolio() {
           <div className="scroll-bar-anim" />
         </div>
       </section>
-
-      <Marquee />
 
       {/* ABOUT */}
       <section id="about" className="section" ref={aboutRef}>
@@ -341,6 +311,8 @@ export default function Portfolio() {
           </div>
         </div>
       </section>
+
+      <Marquee />
 
       {/* PROJECTS */}
       <section id="work" className="section" ref={projRef} style={{ background: "var(--bg2)" }}>

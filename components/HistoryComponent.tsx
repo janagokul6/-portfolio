@@ -45,16 +45,16 @@ export default function HistoryComponent({ jobs, onRefresh }: HistoryComponentPr
     return (
       <div className="flex flex-col h-full min-h-0">
         <div className="flex justify-between items-center gap-2 flex-shrink-0">
-          <h2 className="text-lg font-semibold text-gray-800">Applications (0)</h2>
+          <h2 className="text-lg font-semibold text-[var(--white)]">Applications (0)</h2>
           <button
             onClick={onRefresh}
-            className="p-2 text-gray-600 hover:bg-gray-200 rounded-lg transition-colors"
+            className="p-2 text-[var(--gray)] hover:bg-[var(--card)] hover:text-[var(--white)] rounded-lg transition-colors"
             aria-label="Refresh history"
           >
             <RefreshIcon />
           </button>
         </div>
-        <div className="flex-1 flex items-center justify-center text-center py-8 text-gray-500">
+        <div className="flex-1 flex items-center justify-center text-center py-8 text-[var(--gray)]">
           <div>
             <p className="font-medium">No applications yet</p>
             <p className="text-sm mt-1">Upload a screenshot to get started</p>
@@ -74,12 +74,12 @@ export default function HistoryComponent({ jobs, onRefresh }: HistoryComponentPr
     <div className="flex flex-col h-full min-h-0">
       {/* Header: fixed height, not scrollable */}
       <div className="flex justify-between items-center gap-2 flex-shrink-0 mb-3">
-        <h2 className="text-lg font-semibold text-gray-800 truncate">
+        <h2 className="text-lg font-semibold text-[var(--white)] truncate">
           Applications ({jobs.length})
         </h2>
         <button
           onClick={onRefresh}
-          className="p-2 text-gray-600 hover:bg-gray-200 rounded-lg transition-colors flex-shrink-0"
+          className="p-2 text-[var(--gray)] hover:bg-[var(--card)] hover:text-[var(--white)] rounded-lg transition-colors flex-shrink-0"
           aria-label="Refresh history"
         >
           <RefreshIcon />
@@ -95,7 +95,8 @@ export default function HistoryComponent({ jobs, onRefresh }: HistoryComponentPr
           return (
             <div
               key={job.id}
-              className="bg-white border border-gray-200 rounded-lg overflow-hidden transition-shadow hover:border-gray-300 hover:shadow-sm"
+              className="rounded-lg overflow-hidden transition-all hover:border-[var(--border-hover)] hover:shadow-[0_0_20px_rgba(59,130,246,0.06)]"
+              style={{ background: 'var(--card)', border: '1px solid var(--border)', backdropFilter: 'blur(12px)' }}
             >
               {/* List row: compact, consistent height */}
               <button
@@ -109,13 +110,13 @@ export default function HistoryComponent({ jobs, onRefresh }: HistoryComponentPr
                   {statusDisplay.icon}
                 </span>
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium text-gray-900 truncate">{job.company}</p>
-                  <p className="text-sm text-gray-600 truncate">{job.position}</p>
+                  <p className="font-medium text-[var(--white)] truncate">{job.company}</p>
+                  <p className="text-sm text-[var(--gray)] truncate">{job.position}</p>
                 </div>
                 <span className={`text-xs font-medium flex-shrink-0 ${statusDisplay.color}`}>
                   {statusDisplay.label}
                 </span>
-                <span className="flex-shrink-0 text-gray-400">
+                <span className="flex-shrink-0 text-[var(--dim)]">
                   {isExpanded ? (
                     <ChevronUpIcon />
                   ) : (
@@ -129,9 +130,9 @@ export default function HistoryComponent({ jobs, onRefresh }: HistoryComponentPr
                 id={`history-details-${job.id}`}
                 role="region"
                 aria-label={`Details for ${job.company}`}
-                className={isExpanded ? 'block border-t border-gray-100' : 'hidden'}
+                className={isExpanded ? 'block border-t border-[var(--border)]' : 'hidden'}
               >
-                <div className="p-3 sm:p-4 pt-2 bg-gray-50/80 text-sm space-y-2">
+                <div className="p-3 sm:p-4 pt-2 bg-[rgba(0,0,0,0.15)] text-[var(--gray)] text-sm space-y-2">
                   {job.status === 'applied_via_portal' ? (
                     <DetailRow label="Source" value={`Portal (${job.portalName || 'Unknown ATS'})`} />
                   ) : (
@@ -156,9 +157,9 @@ export default function HistoryComponent({ jobs, onRefresh }: HistoryComponentPr
                       <summary className="cursor-pointer font-medium text-blue-600 hover:text-blue-700">
                         View email
                       </summary>
-                      <div className="mt-2 p-2 bg-white rounded border border-gray-100 space-y-1">
-                        <p><span className="font-medium text-gray-700">Subject: </span>{job.emailSubject}</p>
-                        <p className="text-gray-900 whitespace-pre-wrap break-words">{job.emailBody}</p>
+                      <div className="mt-2 p-2 bg-[var(--bg2)] rounded border border-[var(--border)] space-y-1">
+                        <p><span className="font-medium text-[var(--dim)]">Subject: </span><span className="text-[var(--white)]">{job.emailSubject}</span></p>
+                        <p className="text-[var(--gray)] whitespace-pre-wrap break-words">{job.emailBody}</p>
                       </div>
                     </details>
                   )}
@@ -176,7 +177,7 @@ export default function HistoryComponent({ jobs, onRefresh }: HistoryComponentPr
                         </span>
                       ) : null}
                       {!job.opened && !job.clicked && (
-                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-gray-50 text-gray-500 border border-gray-200">
+                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-[var(--faint)] text-[var(--gray)] border border-[var(--border)]">
                           📭 No activity yet
                         </span>
                       )}
@@ -195,8 +196,8 @@ export default function HistoryComponent({ jobs, onRefresh }: HistoryComponentPr
 function DetailRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex gap-2 min-w-0">
-      <span className="font-medium text-gray-600 flex-shrink-0">{label}:</span>
-      <span className="text-gray-900 truncate">{value}</span>
+      <span className="font-medium text-[var(--dim)] flex-shrink-0">{label}:</span>
+      <span className="text-[var(--white)] truncate">{value}</span>
     </div>
   );
 }

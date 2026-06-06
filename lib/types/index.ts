@@ -191,15 +191,52 @@ export interface Education {
  * Master Profile for Auto-fill
  */
 export interface MasterProfile {
+  // Basic Info
   firstName: string;
   lastName: string;
   email: string;
   phone: string;
   location: string;
+  pronouns: string;
+  
+  // Address Details
+  address: string;
+  city: string;
+  state: string;
+  zip: string;
+  country: string;
+
+  // Links
   linkedinUrl: string;
   githubUrl: string;
   portfolioUrl: string;
+  twitterUrl: string;
+
+  // Job Preferences
+  willingToRelocate: boolean;
+  sponsorshipRequired: boolean;
+  authorizedToWork: boolean;
+  desiredSalary: string;
+  noticePeriod: string;
+  howDidYouHear: string;
+  securityClearance: string;
+
+  // EEO / Demographics
+  gender: string;
+  race: string;
+  veteran: string;
+  disability: string;
+
+  // Documents / Context
+  resumeText: string;
+  coverLetterText: string;
+  customInstructions: string;
+
+  // Experience & Education
   workExperience: WorkExperience[];
   education: Education[];
+  
+  // Skills & Languages
   skills: string; // Comma separated or free text
+  languages: string;
 }

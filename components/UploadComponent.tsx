@@ -182,8 +182,8 @@ export default function UploadComponent({ onUploadComplete, onError }: UploadCom
         <div
           className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
             isDragging
-              ? 'border-blue-500 bg-blue-50'
-              : 'border-gray-300 hover:border-gray-400'
+              ? 'border-[var(--blue-bright)] bg-[var(--blue-soft)]'
+              : 'border-[var(--border)] hover:border-[var(--border-hover)] hover:bg-[rgba(255,255,255,0.01)]'
           }`}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
@@ -213,7 +213,7 @@ export default function UploadComponent({ onUploadComplete, onError }: UploadCom
                 <button
                   type="button"
                   onClick={handleClear}
-                  className="text-sm text-gray-600 hover:text-gray-800"
+                  className="text-sm text-[var(--gray)] hover:text-[var(--white)]"
                   disabled={isLoading}
                 >
                   Change image
@@ -222,7 +222,7 @@ export default function UploadComponent({ onUploadComplete, onError }: UploadCom
             ) : (
               <div className="space-y-2">
                 <svg
-                  className="mx-auto h-12 w-12 text-gray-400"
+                  className="mx-auto h-12 w-12 text-[var(--faint)]"
                   stroke="currentColor"
                   fill="none"
                   viewBox="0 0 48 48"
@@ -235,13 +235,13 @@ export default function UploadComponent({ onUploadComplete, onError }: UploadCom
                     strokeLinejoin="round"
                   />
                 </svg>
-                <div className="text-sm text-gray-600">
-                  <span className="font-medium text-blue-600 hover:text-blue-500">
+                <div className="text-sm text-[var(--gray)]">
+                  <span className="font-medium text-[var(--blue-bright)] hover:text-[var(--white)] transition-colors">
                     Upload a screenshot
                   </span>
                   , paste from clipboard, or drag and drop
                 </div>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-[var(--dim)]">
                   PNG, JPG, JPEG, WebP up to 10MB
                 </p>
               </div>
@@ -251,7 +251,7 @@ export default function UploadComponent({ onUploadComplete, onError }: UploadCom
         
         {/* Optional Prompt Input */}
         <div>
-          <label htmlFor="prompt" className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="prompt" className="block text-sm font-medium text-[var(--gray)] mb-1">
             Additional context (optional)
           </label>
           <textarea
@@ -259,7 +259,7 @@ export default function UploadComponent({ onUploadComplete, onError }: UploadCom
             value={promptText}
             onChange={(e) => setPromptText(e.target.value)}
             placeholder="Add any specific instructions or context..."
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+            className="form-field"
             rows={3}
             disabled={isLoading}
           />
@@ -269,7 +269,7 @@ export default function UploadComponent({ onUploadComplete, onError }: UploadCom
         <button
           type="submit"
           disabled={!selectedFile || isLoading}
-          className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center justify-center"
+          className="btn btn-fill btn-lg w-full justify-center disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isLoading ? (
             <>
