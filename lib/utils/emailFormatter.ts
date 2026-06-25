@@ -8,7 +8,10 @@ import path from 'path';
  * Add signature to email body
  */
 export function addSignature(emailBody: string): string {
-  const name = process.env.APPLICANT_NAME || 'Gokul Jana';
+  const name = process.env.APPLICANT_NAME;
+  if (!name) {
+    throw new Error('APPLICANT_NAME environment variable is required');
+  }
   const contact = process.env.APPLICANT_CONTACT;
   // Simple signature format
   const signature = `\n\nBest regards,\n${name}\n${contact}`;

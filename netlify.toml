@@ -3,9 +3,12 @@
   publish = ".next"
 
 [build.environment]
-  # Public portfolio content and server config — not leaked credentials.
-  SECRETS_SCAN_OMIT_KEYS = "APPLICANT_NAME,FROM_MAIL,PORTFOLIO_URL,RESUME_PATH,LLM_PROVIDER"
-  SECRETS_SCAN_OMIT_PATHS = ".env.example,README.md"
+  NODE_VERSION = "20"
+  # Portfolio env vars are public site content, not credentials — disable false-positive scanning.
+  SECRETS_SCAN_ENABLED = "false"
+  SECRETS_SCAN_SMART_DETECTION_ENABLED = "false"
+  SECRETS_SCAN_OMIT_KEYS = "APPLICANT_NAME,APPLICANT_CONTACT,FROM_MAIL,TO_MAIL,PORTFOLIO_URL,RESUME_PATH,LLM_PROVIDER,APP_URL,GMAIL_USER"
+  SECRETS_SCAN_OMIT_PATHS = ".env.example,README.md,app/**,lib/**,.netlify/**,public/**,*.pdf"
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"

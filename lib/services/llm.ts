@@ -661,8 +661,8 @@ Generate a strong, tailored answer (under 150 words):`;
  * Create LLM service based on environment configuration
  */
 export function createLLMService(): LLMService {
-  const provider = process.env.LLM_PROVIDER || 'openai';
-  
+  const provider = process.env.LLM_PROVIDER?.toLowerCase();
+
   if (provider === 'gemini') {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
