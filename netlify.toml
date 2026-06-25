@@ -2,5 +2,10 @@
   command = "npm run build"
   publish = ".next"
 
+[build.environment]
+  # Public portfolio content and server config — not leaked credentials.
+  SECRETS_SCAN_OMIT_KEYS = "APPLICANT_NAME,FROM_MAIL,PORTFOLIO_URL,RESUME_PATH,LLM_PROVIDER"
+  SECRETS_SCAN_OMIT_PATHS = ".env.example,README.md"
+
 [[plugins]]
   package = "@netlify/plugin-nextjs"

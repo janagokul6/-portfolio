@@ -37,7 +37,7 @@ Create a \`.env.local\` file:
 
 \`\`\`env
 # LLM Provider (openai or gemini)
-LLM_PROVIDER=openai
+LLM_PROVIDER=your_provider_here
 
 # OpenAI Configuration
 OPENAI_API_KEY=your_openai_api_key_here
